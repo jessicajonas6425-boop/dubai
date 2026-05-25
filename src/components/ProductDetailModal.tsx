@@ -5,6 +5,117 @@ import { Product, CartItem, Review } from '../types';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 
+function getMockReviewsForProduct(product: Product): Omit<Review, 'id'>[] {
+  const brand = product.brand || 'Grife';
+  const name = product.name || 'Produto VIP';
+  const cat = (product.category || 'outros').toLowerCase();
+
+  const mockNames = [
+    'Mariana Silva', 'Carlos Henrique', 'Aline Fontes', 'Gabriela M.', 
+    'Thiago Rezende', 'Bruno Costa', 'Camila Cavalcanti', 'Isabela Nogueira', 
+    'Mateus Vasconcelos', 'Renata Azevedo', 'Rodrigo Santoro', 'Amanda Castro',
+    'Lucas Lins', 'Beatriz Marinho', 'Felipe Almeida', 'Patrícia Lima'
+  ];
+
+  // Pick unique random indices from mockNames
+  const getRandomNames = (count: number) => {
+    const shuffled = [...mockNames].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+
+  const commentsRoupas = [
+    `O caimento desta peça da ${brand} é simplesmente impecável! O tecido tem um toque super macio e as costuras são muito reforçadas. Superou minhas expectativas!`,
+    `Comprei esse lote ${name} e todo mundo elogiou no evento. O corte é super sofisticado e o caimento veste perfeitamente. Compra de luxo de verdade.`,
+    `Acabamento primoroso. Vale cada centavo pela qualidade da grife ${brand}. O design é elegante, com ótimo caimento e chegou muito rápido!`,
+    `Super satisfeito! A costura e a textura do tecido são de outro patamar. Muito confortável, combina com várias ocasiões VIP de alto padrão.`,
+    `Adorei o caimento e a elegância. É extremamente confortável e a embalagem veio super cheirosa com detalhes premium da loja. Recomendo muito!`
+  ];
+
+  const commentsTenis = [
+    `Incrível! O conforto desse calçado é de outro nível e o design do ${name} é surreal de lindo. Os detalhes e materiais da ${brand} chamam muito a atenção!`,
+    `Comprei de presente e superou as expectativas. Calça super bem, muito macio por dentro e o acabamento em couro/camurça é de extrema qualidade.`,
+    `Muito satisfeito com o lote! O tênis é perfeito, robusto e extremamente moderno. O conforto nas pisadas é indescritível.`,
+    `Lindo demais! Parece uma obra de arte nos pés. O acabamento premium da ${brand} é perceptível de longe. Com certeza comprarei mais.`,
+    `Sensacional! Conforto absoluto e a estética é maravilhosa. Chamei atenção em todo lugar que fui. Entrega rápida em apenas 2 dias!`
+  ];
+
+  const commentsPerfumes = [
+    `Fixação absurdamente extraordinária! Projetou por mais de 3 horas na minha pele e o aroma do ${name} ficou por mais de 12 horas. Uma fragrância imponente!`,
+    `Muito refinado e elegante. Frasco com peso imponente da ${brand} e spray perfeito. Fragrância maravilhosa para eventos noturnos requintados.`,
+    `Cheiro de pura riqueza! Toda vez que uso esse perfume, me perguntam qual é. Fixação nota 10 e rastro espetacular. Produto 100% original.`,
+    `Fragrância muito marcante e sedutora. Um perfume de alta presença para quem busca exclusividade. Fixação média de 10h na minha pele.`,
+    `Incrível! Abre fresco de forma muito rica e logo evolui para notas amadeiradas sofisticadas. Essência magnífica.`
+  ];
+
+  const commentsFallback = [
+    `Excelente experiência de compra! O artigo superou todas as minhas expectativas em detalhes e qualidade de fabricação da ${brand}.`,
+    `Fiquei impressionada com o cuidado na embalagem e na entrega rápida. O lote ${name} é original e rico em detalhes magníficos.`,
+    `Perfeito! Material muito resistente e design requintado de altíssima costura. Com certeza recomendo a loja para compras de luxo.`
+  ];
+
+  let activePool = commentsFallback;
+  if (cat.includes('roupa') || cat.includes('vest') || cat.includes('camis') || cat.includes('casac') || cat.includes('roupas')) {
+    activePool = commentsRoupas;
+  } else if (cat.includes('tenis') || cat.includes('tênis') || cat.includes('sapato') || cat.includes('calc') || cat.includes('tenis')) {
+    activePool = commentsTenis;
+  } else if (cat.includes('perfume') || cat.includes('fragran') || cat.includes('aroma') || cat.includes('perfumes')) {
+    activePool = commentsPerfumes;
+  }
+
+  // Create a deterministic hash seed based on the productId
+  let seed = 0;
+  const productId = product.id || 'default_product';
+  for (let i = 0; i < productId.length; i++) {
+    seed = productId.charCodeAt(i) + ((seed << 5) - seed);
+  }
+
+  // Linear Congruential Generator for deterministic pseudo-randomness
+  const pseudoRandom = () => {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  };
+
+  // Select unique names and comments deterministically based on seed
+  const shuffledNames = [...mockNames];
+  for (let i = shuffledNames.length - 1; i > 0; i--) {
+    const j = Math.floor(pseudoRandom() * (i + 1));
+    const temp = shuffledNames[i];
+    shuffledNames[i] = shuffledNames[j];
+    shuffledNames[j] = temp;
+  }
+
+  const shuffledComments = [...activePool];
+  for (let i = shuffledComments.length - 1; i > 0; i--) {
+    const j = Math.floor(pseudoRandom() * (i + 1));
+    const temp = shuffledComments[i];
+    shuffledComments[i] = shuffledComments[j];
+    shuffledComments[j] = temp;
+  }
+
+  const numReviews = Math.floor(pseudoRandom() * 3) + 3; // 3 to 5 reviews deterministically
+  const reviews: Omit<Review, 'id'>[] = [];
+  
+  for (let i = 0; i < numReviews; i++) {
+    const daysAgo = i * 2 + Math.floor(pseudoRandom() * 2) + 2; // 2 to 12 days ago
+    const date = new Date('2026-05-20T12:00:00Z'); // Consistent base date
+    date.setDate(date.getDate() - daysAgo);
+
+    // Mostly 5 stars, sometimes 4 stars
+    const rating = pseudoRandom() > 0.2 ? 5 : 4;
+
+    reviews.push({
+      productId: productId,
+      userId: `mock_user_${i}_${productId}`,
+      userName: shuffledNames[i % shuffledNames.length],
+      rating: rating,
+      comment: shuffledComments[i % shuffledComments.length] || activePool[i % activePool.length],
+      createdAt: date.toISOString()
+    });
+  }
+
+  return reviews;
+}
+
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
@@ -47,6 +158,7 @@ export default function ProductDetailModal({
   if (!product) return null;
 
   async function fetchReviews(productId: string) {
+    if (!product) return;
     try {
       const q = query(
         collection(db, 'reviews'),
@@ -58,9 +170,16 @@ export default function ProductDetailModal({
       snapshot.forEach(doc => {
         list.push({ id: doc.id, ...doc.data() } as Review);
       });
-      setReviewsList(list);
+      
+      const mocks = getMockReviewsForProduct(product);
+      // Combine Firestore-submitted real review comments with our highly-curated deterministic mocks
+      const combined = [...list, ...mocks];
+      setReviewsList(combined);
     } catch (e) {
       console.error('Failed to grab reviews: ', e);
+      // Fallback cleanly to beautiful deterministic mocks, even if Firestore is completely offline or permissions fail
+      const mocks = getMockReviewsForProduct(product);
+      setReviewsList(mocks);
     }
   }
 
@@ -135,7 +254,7 @@ export default function ProductDetailModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3 }}
-          className="relative w-full max-w-5xl rounded-sm border border-white/10 bg-[#0A0A0A] shadow-2xl p-6 sm:p-8 overflow-hidden"
+          className="relative w-full max-w-5xl rounded-sm border border-white/10 bg-[#0A0A0A] shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto scrollbar-thin"
         >
           {/* Close button */}
           <button

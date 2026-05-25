@@ -5,6 +5,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { Product, Category, CartItem, UserProfile, SiteConfig } from './types';
 
+// @ts-ignore
+import DubaiBgImage from './assets/images/dubai_skyline_watercolor_bg_1779723350987.png';
+
 // Component Imports
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -16,7 +19,7 @@ import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 
 // Lucide Icons
-import { SlidersHorizontal, Search, Sparkles, Filter, X, ArrowUpDown, RefreshCw, Layers } from 'lucide-react';
+import { SlidersHorizontal, Search, Sparkles, Filter, X, ArrowUpDown, RefreshCw, Layers, Smartphone, Plus, ArrowUpFromLine, Download } from 'lucide-react';
 
 export default function App() {
   // Global Cloud Synchronized States
@@ -74,6 +77,70 @@ export default function App() {
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc'>('default');
   const [showFilterDrawer, setShowFilterDrawer] = useState<boolean>(false);
   const [showIntro, setShowIntro] = useState<boolean>(true);
+
+  // States for PWA installation
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
+  const [isIOS, setIsIOS] = useState<boolean>(false);
+  const [showIOSHintModal, setShowIOSHintModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Detect iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIphoneOrIpad = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIphoneOrIpad);
+
+    // Check if already running in standalone/installed mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                         (window.navigator as any).standalone === true;
+
+    // Listen for default beforeinstallprompt trigger (Android/Chrome/Edge)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      const dismissed = localStorage.getItem('premium_pwa_dismissed');
+      if (!isStandalone && !dismissed) {
+        // Show banner after 5s to avoid initial interface distraction
+        setShowInstallBanner(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // If Apple iOS and not in standalone mode, auto-show hints banner
+    const dismissed = localStorage.getItem('premium_pwa_dismissed');
+    if (isIphoneOrIpad && !isStandalone && !dismissed) {
+      const iosBannerTimer = setTimeout(() => {
+        setShowInstallBanner(true);
+      }, 8000);
+      return () => {
+        clearTimeout(iosBannerTimer);
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+      setShowInstallBanner(false);
+    } else {
+      // Toggle custom illustrated user sheet with 2 steps for Apple / Fallbacks
+      setShowIOSHintModal(true);
+      setShowInstallBanner(false);
+    }
+  };
+
+  const handleDismissPWA = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('premium_pwa_dismissed', 'true');
+  };
 
   // 7 Seconds Cinematic Intro timer
   useEffect(() => {
@@ -310,10 +377,16 @@ export default function App() {
   const uniqueSizes = Array.from(new Set(products.flatMap((p) => p.sizes))).sort();
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans flex flex-col antialiased">
+    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans flex flex-col antialiased relative overflow-x-hidden">
+      
+      {/* Luxurious Watercolor UAE flag & Dubai skyline background with transparent opacity */}
+      <div 
+        className="absolute inset-0 z-0 pointer-events-none opacity-15 bg-no-repeat bg-cover bg-center bg-fixed mix-blend-lighten"
+        style={{ backgroundImage: `url(${DubaiBgImage})` }}
+      />
       
       {/* GLOBAL BANNER NEWS */}
-      <div className="bg-[#0A0A0A] border-b border-white/5 py-3.5 text-center text-[10px] font-sans font-bold uppercase tracking-[0.25em] text-[#D4AF37]">
+      <div className="bg-[#0A0A0A] border-b border-white/5 py-3.5 text-center text-[10px] font-sans font-bold uppercase tracking-[0.25em] text-[#D4AF37] relative z-20">
         ✦ GANHE 10% DE DESCONTO VIP NA PRIMEIRA COMPRA COM O CUPOM: <span className="text-white font-bold bg-white/5 px-2.5 py-1 rounded-sm border border-[#D4AF37]/35">DUBAI10</span> ✦
       </div>
 
@@ -348,16 +421,20 @@ export default function App() {
         activeCategory={activeCategory}
         onCategorySelect={setActiveCategory}
         isAdminUser={isAdminUser}
+        onInstallClick={handleInstallPWA}
+        showInstallButton={true}
       />
 
       {/* Main Hero Showcase */}
       {activeCategory === 'all' && !searchQuery && (
         <Hero
+          products={products}
           onExploreClick={() => {
             const vitrine = document.getElementById('vitrine-anchor');
             if (vitrine) vitrine.scrollIntoView({ behavior: 'smooth' });
           }}
           onSelectCategory={setActiveCategory}
+          onProductClick={setSelectedProduct}
         />
       )}
 
@@ -635,7 +712,7 @@ export default function App() {
             {/* Cinematic subtle rotating particle halo */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.08)_0%,transparent_65%)]" />
             
-            <div className="absolute inset-0 opacity-15 pointer-events-none mix-blend-color-dodge bg-no-repeat bg-cover bg-center" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=1200')` }} />
+            <div className="absolute inset-0 opacity-25 pointer-events-none mix-blend-color-dodge bg-no-repeat bg-cover bg-center" style={{ backgroundImage: `url(${DubaiBgImage})` }} />
             
             <motion.div
               animate={{ rotate: 360 }}
@@ -739,6 +816,125 @@ export default function App() {
               Couture Internacionais • Curating Prestige
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PWA Install Banner (Slide-up drawer at the bottom) */}
+      <AnimatePresence>
+        {showInstallBanner && (
+          <motion.div
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed bottom-0 left-0 right-0 z-[100] p-4 bg-[#0A0A0A]/95 border-t border-[#D4AF37]/35 backdrop-blur-xl shadow-2xl"
+          >
+            <div className="mx-auto max-w-lg flex flex-col sm:flex-row items-center gap-4 justify-between">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="h-11 w-11 rounded-sm bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37] flex-shrink-0 animate-bounce">
+                  <Smartphone size={22} />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-xs font-sans font-black text-[#D4AF37] tracking-wider uppercase">DUBAI APP VIP</h4>
+                  <p className="text-[10px] text-zinc-300 font-serif leading-relaxed max-w-[280px]">
+                    Instale nosso aplicativo oficial para acesso instantâneo aos lotes importados e notificações VIP directas no seu celular.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <button
+                  onClick={handleDismissPWA}
+                  className="px-3 py-1.5 rounded-sm text-[9px] font-sans font-bold text-zinc-400 uppercase tracking-widest hover:text-white transition-colors cursor-pointer"
+                >
+                  Mais Tarde
+                </button>
+                <button
+                  onClick={handleInstallPWA}
+                  className="px-4 py-2 rounded-sm bg-gradient-to-r from-[#AA7C11] via-[#D4AF37] to-[#C5A059] text-black text-[9px] font-sans font-black uppercase tracking-widest shadow-lg shadow-[#D4AF37]/20 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                >
+                  Instalar
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* iOS Safari Native Install Guidance Sheet */}
+      <AnimatePresence>
+        {showIOSHintModal && (
+          <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              className="relative w-full max-w-sm rounded-sm border border-[#D4AF37]/35 bg-[#020202] p-5 shadow-2xl text-white font-sans overflow-hidden"
+            >
+              {/* Premium Luxury Details background spot */}
+              <div className="absolute top-0 right-0 h-36 w-36 rounded-full bg-[#D4AF37]/5 filter blur-3xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="text-[#D4AF37]" size={16} />
+                  <span className="font-sans font-black text-[10px] text-white uppercase tracking-wider">Membro VIP Dubai</span>
+                </div>
+                <button
+                  onClick={() => setShowIOSHintModal(false)}
+                  className="rounded-full bg-white/5 p-1 text-white/50 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 text-left">
+                <div className="text-center">
+                  <div className="inline-flex h-11 w-11 rounded-full bg-[#D4AF37]/10 items-center justify-center text-[#D4AF37] border border-[#D4AF37]/20 mb-2">
+                    <Download size={20} />
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[#D4AF37]">Dubai Store no seu iPhone</h3>
+                  <p className="text-[11px] text-zinc-400 font-serif mt-1 max-w-[280px] mx-auto leading-relaxed">
+                    Siga estes 2 passos simples para instalar o aplicativo na tela principal do seu celular e ter a melhor experiência de compra:
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-start gap-2.5 bg-white/[0.01] border border-white/5 p-2.5 rounded-sm">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#D4AF37]/20 text-[#D4AF37] font-mono text-[10px] font-bold flex-shrink-0 mt-0.5">
+                      1
+                    </div>
+                    <div className="text-[11px]">
+                      <p className="text-[#D4AF37] font-black uppercase tracking-wider mb-0.5">Toque em Compartilhar</p>
+                      <p className="text-zinc-300 leading-normal">
+                        Toque no botão de <strong>Compartilhar</strong> do Safari. Ele fica no rodapé do navegador <span className="inline-flex items-center justify-center bg-white/10 p-0.5 rounded-sm"><ArrowUpFromLine size={10} className="text-white" /></span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 bg-white/[0.01] border border-white/5 p-2.5 rounded-sm">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#D4AF37]/20 text-[#D4AF37] font-mono text-[10px] font-bold flex-shrink-0 mt-0.5">
+                      2
+                    </div>
+                    <div className="text-[11px]">
+                      <p className="text-[#D4AF37] font-black uppercase tracking-wider mb-0.5">Adicione à Tela de Início</p>
+                      <p className="text-zinc-300 leading-normal">
+                        Role a lista para baixo e toque em <strong>"Adicionar à Tela de Início"</strong> <span className="inline-flex items-center justify-center bg-white/10 p-0.5 rounded-sm"><Plus size={10} className="text-white" /></span>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowIOSHintModal(false);
+                    localStorage.setItem('premium_pwa_dismissed', 'true');
+                  }}
+                  className="w-full mt-2 py-2.5 rounded-sm bg-gradient-to-r from-[#AA7C11] via-[#D4AF37] to-[#C5A059] text-black text-[10px] font-sans font-black uppercase tracking-widest shadow-md cursor-pointer hover:opacity-90 active:scale-95 transition-transform"
+                >
+                  Entendi • Fechar Guia
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

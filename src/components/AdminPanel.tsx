@@ -46,6 +46,7 @@ export default function AdminPanel({
   const [pPromoPrice, setPPromoPrice] = useState(0);
   const [pCat, setPCat] = useState('roupas');
   const [pImageUrl, setPImageUrl] = useState('');
+  const [pImages, setPImages] = useState<string[]>(['']);
   const [pStock, setPStock] = useState(5);
   const [pSizes, setPSizes] = useState('');
   const [pColors, setPColors] = useState('');
@@ -166,6 +167,7 @@ export default function AdminPanel({
     setPPromoPrice(290);
     setPCat(categories[0]?.id || 'roupas');
     setPImageUrl('https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80');
+    setPImages(['https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80']);
     setPStock(10);
     setPSizes('40, 41, 42');
     setPColors('Preto, Branco, Dourado');
@@ -183,7 +185,8 @@ export default function AdminPanel({
     setPPrice(prod.price);
     setPPromoPrice(prod.promoPrice || prod.price);
     setPCat(prod.category);
-    setPImageUrl(prod.images[0]);
+    setPImageUrl(prod.images?.[0] || '');
+    setPImages(prod.images && prod.images.length > 0 ? [...prod.images] : ['']);
     setPStock(prod.stock);
     setPSizes(prod.sizes.join(', '));
     setPColors(prod.colors.join(', '));
@@ -196,8 +199,9 @@ export default function AdminPanel({
   // Save / Edit Product Actions
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pName.trim() || !pBrand.trim() || !pImageUrl.trim()) {
-      alert('Preencha os dados básicos do produto.');
+    const finalImages = pImages.map(img => img.trim()).filter(Boolean);
+    if (!pName.trim() || !pBrand.trim() || finalImages.length === 0) {
+      alert('Preencha os dados básicos do produto (nome, grife e pelo menos 1 URL de imagem).');
       return;
     }
 
@@ -208,7 +212,7 @@ export default function AdminPanel({
       price: Number(pPrice),
       promoPrice: Number(pPromoPrice),
       category: pCat,
-      images: [pImageUrl],
+      images: finalImages,
       stock: Number(pStock),
       sizes: pSizes.split(',').map(s => s.trim()).filter(Boolean),
       colors: pColors.split(',').map(c => c.trim()).filter(Boolean),
@@ -615,35 +619,66 @@ export default function AdminPanel({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-3">
                     <div>
-                      <label className="text-[10px] font-mono text-zinc-400 font-bold block mb-1">Imagem Principal (URL):</label>
-                      <input
-                        type="text"
-                        required
-                        value={pImageUrl}
-                        onChange={(e) => setPImageUrl(e.target.value)}
-                        className="bg-zinc-900 text-white rounded-lg p-2.5 border border-zinc-800 text-xs w-full"
-                      />
+                      <label className="text-[10px] font-mono text-zinc-400 font-bold block mb-2">Imagens do Lote (URLs):</label>
+                      <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                        {pImages.map((imgUrl, imageUrlIdx) => (
+                          <div key={imageUrlIdx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              required={imageUrlIdx === 0}
+                              placeholder={imageUrlIdx === 0 ? "URL da Imagem Principal (Obrigatória)" : `URL da Imagem adicional ${imageUrlIdx + 1}`}
+                              value={imgUrl}
+                              onChange={(e) => {
+                                const updatedImgArray = [...pImages];
+                                updatedImgArray[imageUrlIdx] = e.target.value;
+                                setPImages(updatedImgArray);
+                              }}
+                              className="bg-zinc-900 text-white rounded-lg p-2.5 border border-zinc-800 text-xs flex-1 focus:outline-none focus:border-[#D4AF37]"
+                            />
+                            {pImages.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedImgArray = pImages.filter((_, filterIdx) => filterIdx !== imageUrlIdx);
+                                  setPImages(updatedImgArray);
+                                }}
+                                className="p-2.5 text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-md transition text-xs font-bold font-mono"
+                              >
+                                REMOVER
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPImages([...pImages, ''])}
+                        className="mt-2 text-[9px] font-mono tracking-wider font-extrabold text-[#D4AF37] hover:text-white uppercase transition-colors flex items-center gap-1 bg-white/5 px-2.5 py-1.5 rounded-sm hover:bg-white/10"
+                      >
+                        ✦ Adicionar Nova Imagem
+                      </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pt-6">
+
+                    <div className="flex gap-6 items-center py-2 bg-zinc-950/20 px-3 rounded-lg border border-zinc-900/40">
                       <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={pFeatured}
                           onChange={(e) => setPFeatured(e.target.checked)}
-                          className="accent-amber-450"
+                          className="accent-[#D4AF37]"
                         />
-                        <span className="text-[10px] font-mono text-zinc-300 uppercase">Destaque</span>
+                        <span className="text-[10px] font-mono text-zinc-300 uppercase tracking-widest">Destaque</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={pIsNew}
                           onChange={(e) => setPIsNew(e.target.checked)}
-                          className="accent-amber-450"
+                          className="accent-[#D4AF37]"
                         />
-                        <span className="text-[10px] font-mono text-zinc-300 uppercase">Coleção Nova</span>
+                        <span className="text-[10px] font-mono text-zinc-300 uppercase tracking-widest">Coleção Nova</span>
                       </label>
                     </div>
                   </div>

@@ -266,9 +266,58 @@ export default function CheckoutModal({
       // Submit batch atomic operations
       await batch.commit();
 
+      // Clear formatting of whatsapp number
+      const cleanPhone = (siteConfig.whatsapp || '')
+        .replace('https://wa.me/', '')
+        .replace('https://api.whatsapp.com/send?phone=', '')
+        .replace(/\D/g, '') || '5511999999999';
+
+      // Construct magnificent premium WhatsApp summary text
+      let msgs = `👑 *DUBAI LUXURY STORE* 👑\n`;
+      msgs += `*✦ NOVO PEDIDO CONFIRMADO ✦*\n\n`;
+      msgs += `📦 *Pedido ID:* \`${orderId}\`\n`;
+      msgs += `📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+      
+      msgs += `👤 *DADOS DO CLIENTE:*\n`;
+      msgs += `• *Nome:* ${customerName || 'Cliente Balcão'}\n`;
+      msgs += `• *E-mail:* ${customerEmail || 'guest@dubaistore.com'}\n\n`;
+      
+      msgs += `📍 *ENDEREÇO DE ENTREGA:*\n`;
+      msgs += `• *CEP:* ${address.zipCode}\n`;
+      msgs += `• *Rua:* ${address.street}, Nº ${address.number}\n`;
+      if (address.complement) msgs += `• *Comp.:* ${address.complement}\n`;
+      msgs += `• *Bairro:* ${address.neighborhood}\n`;
+      msgs += `• *Cidade/UF:* ${address.city} - ${address.state}\n\n`;
+      
+      msgs += `💼 *PAGAMENTO & ENVIO:*\n`;
+      msgs += `• *Método:* ${paymentMethod}\n`;
+      msgs += `• *Frete:* R$ ${(shippingPrice !== null ? shippingPrice : 0).toFixed(2)} (${shippingCarrier})\n\n`;
+
+      msgs += `🛒 *ITENS DO PEDIDO:*\n`;
+      cart.forEach((item, index) => {
+        const price = item.product.promoPrice || item.product.price;
+        msgs += `\n*${index + 1}. ${item.product.name}*\n`;
+        msgs += `  • Tam: \`${item.selectedSize}\` | Cor: \`${item.selectedColor}\`\n`;
+        msgs += `  • Qtd: ${item.quantity}x R$ ${price.toFixed(2)}\n`;
+        msgs += `  • Foto do Item: ${item.product.images[0]}\n`;
+      });
+      
+      msgs += `\n📊 *FINANCEIRO:*\n`;
+      msgs += `• *Subtotal:* R$ ${rawSubtotal.toFixed(2)}\n`;
+      if (appliedCoupon) {
+        msgs += `• *Cupom:* ${appliedCoupon.code} (-${appliedCoupon.discountPercent}%)\n`;
+      }
+      msgs += `🔥 *TOTAL GERAL:* R$ ${grandTotal.toFixed(2)}\n\n`;
+      msgs += `✦ _Pedido enviado da vitrine inspirada em Dubai de alta ostentação._ ✦`;
+
+      const waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(msgs)}`;
+
       setCreatedOrder(newOrder);
       setStep(3);
       onClearCart();
+
+      // Open WhatsApp Dispatch link in a new tab
+      window.open(waUrl, '_blank');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'orders');
     } finally {

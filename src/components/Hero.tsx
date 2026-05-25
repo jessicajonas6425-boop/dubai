@@ -1,12 +1,32 @@
-import { motion } from 'motion/react';
-import { Sparkles, Compass } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Sparkles, Compass, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Product } from '../types';
+import { useState, useEffect } from 'react';
 
 interface HeroProps {
+  products: Product[];
   onExploreClick: () => void;
   onSelectCategory: (cat: string) => void;
+  onProductClick: (product: Product) => void;
 }
 
-export default function Hero({ onExploreClick, onSelectCategory }: HeroProps) {
+export default function Hero({ products, onExploreClick, onSelectCategory, onProductClick }: HeroProps) {
+  const featured = products.filter(p => p.featured);
+  const list = featured.length > 0 ? featured : products.slice(0, 3);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Autoplay cycle effect - 4.5 seconds for proper reading and supreme prestige feel
+  useEffect(() => {
+    if (list.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % list.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [list]);
+
+  const activeProduct = list[currentIndex];
+
   return (
     <section className="relative min-h-[85vh] overflow-hidden bg-[#0A0A0A] flex items-center border-b border-white/5 py-12 lg:py-0">
       
@@ -29,7 +49,7 @@ export default function Hero({ onExploreClick, onSelectCategory }: HeroProps) {
           {/* Left info column */}
           <div className="flex flex-col justify-center space-y-6 text-left z-10 lg:pr-6">
             <div className="space-y-2">
-              <span className="text-[#D4AF37] uppercase text-[10px] tracking-[0.4em] font-bold font-sans block">
+              <span className="text-[#D4AF37] uppercase text-[10px] tracking-[0.4em] font-bold font-sans block animate-pulse">
                 ✦ DUBAI SUPREME LUXURY ✦
               </span>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-light text-white leading-[1.1] font-serif">
@@ -62,43 +82,100 @@ export default function Hero({ onExploreClick, onSelectCategory }: HeroProps) {
           </div>
 
           {/* Center Column: Arched luxury design with rotating showcase */}
-          <div className="flex justify-center items-center relative z-10">
-            <div className="w-[280px] sm:w-[355px] h-[480px] bg-gradient-to-b from-white/10 to-transparent rounded-[160px] border border-white/10 relative overflow-hidden flex items-center justify-center backdrop-blur-2xl">
+          <div className="flex justify-center items-center relative z-10 w-full">
+            <div className="w-[280px] sm:w-[355px] h-[480px] bg-gradient-to-b from-white/10 to-transparent rounded-[160px] border border-white/10 relative overflow-hidden flex flex-col items-center justify-center backdrop-blur-2xl">
               
               {/* Radial gradient backing */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(212,175,55,0.1)_0%,transparent_100%)]"></div>
               
-              <div className="w-56 h-72 flex flex-col items-center justify-center relative">
-                <motion.div 
-                  initial={{ rotate: -12 }}
-                  whileHover={{ rotate: 0 }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                  className="w-44 h-56 bg-gradient-to-br from-zinc-900 to-black rounded-2xl flex flex-col items-center justify-center shadow-2xl cursor-pointer border border-white/10 relative group"
-                >
-                  <img
-                    src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80"
-                    alt="Exclusive Collection Item"
-                    className="w-full h-full object-cover rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity"
-                  />
-                  
-                  {/* Floating Gold Border Accent */}
-                  <div className="absolute inset-2 border border-[#D4AF37]/20 rounded-xl group-hover:border-[#D4AF37]/50 transition-colors pointer-events-none" />
-                  
-                  <span className="absolute bottom-4 left-4 text-white/40 text-[8px] uppercase tracking-widest font-mono">
-                    DUBAI EDITION Nº 01
-                  </span>
-                </motion.div>
-              </div>
+              {activeProduct ? (
+                <div className="relative w-full h-full flex flex-col items-center justify-center">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeProduct.id}
+                      initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -15, scale: 1.02 }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                      onClick={() => onProductClick(activeProduct)}
+                      className="flex flex-col items-center justify-center text-center w-full px-4"
+                    >
+                      {/* Image container with nice rotation */}
+                      <div className="w-56 h-64 flex items-center justify-center relative mb-14">
+                        <motion.div 
+                          className="w-44 h-56 bg-gradient-to-br from-zinc-900 to-black rounded-2xl flex flex-col items-center justify-center shadow-2xl cursor-pointer border border-white/10 relative group"
+                          whileHover={{ scale: 1.04, rotate: 0 }}
+                          initial={{ rotate: -8 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <img
+                            src={activeProduct.images[0]}
+                            alt={activeProduct.name}
+                            className="w-full h-full object-cover rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity"
+                            referrerPolicy="no-referrer"
+                          />
+                          
+                          {/* Floating Gold Border Accent */}
+                          <div className="absolute inset-2 border border-[#D4AF37]/20 rounded-xl group-hover:border-[#D4AF37]/50 transition-colors pointer-events-none" />
+                          
+                          <span className="absolute bottom-4 left-4 text-white/40 text-[8px] uppercase tracking-widest font-mono">
+                            {activeProduct.brand} • {activeProduct.category.toUpperCase()}
+                          </span>
+                        </motion.div>
+                      </div>
 
-              {/* Lower tag display */}
-              <div className="absolute bottom-10 text-center px-4">
-                <p className="text-[9px] uppercase tracking-[0.3em] text-[#D4AF37] mb-1 font-sans">
-                  ✧ Direto de Dubai ✧
-                </p>
-                <h3 className="text-lg font-light tracking-wide text-white font-display">
-                  Dubai Gold Air Edition
-                </h3>
-              </div>
+                      {/* Lower tag display */}
+                      <div className="absolute bottom-8 text-center px-4 w-full">
+                        <p className="text-[9px] uppercase tracking-[0.3em] text-[#D4AF37] mb-1.5 font-sans font-bold">
+                          ✧ Lote VIP Destaque ✧
+                        </p>
+                        <h3 className="text-[13px] sm:text-sm font-light tracking-wide text-white uppercase line-clamp-1 h-5 select-none font-display mb-1.5 cursor-pointer hover:text-[#D4AF37] transition-colors">
+                          {activeProduct.name}
+                        </h3>
+                        <p className="text-[10px] font-mono text-[#D4AF37] font-bold">
+                          R$ {(activeProduct.promoPrice || activeProduct.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Dot sliders */}
+                  {list.length > 1 && (
+                    <div className="absolute bottom-2.5 flex gap-1.5 z-20">
+                      {list.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentIndex(i)}
+                          className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                            i === currentIndex ? 'w-4 bg-[#D4AF37]' : 'w-1.5 bg-white/20 hover:bg-white/40'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Prev/Next discrete arrows */}
+                  {list.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentIndex(prev => (prev - 1 + list.length) % list.length)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white/50 hover:text-white transition-all border border-white/5 cursor-pointer z-30"
+                      >
+                        <ArrowLeft size={10} />
+                      </button>
+                      <button
+                        onClick={() => setCurrentIndex(prev => (prev + 1) % list.length)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white/50 hover:text-white transition-all border border-white/5 cursor-pointer z-30"
+                      >
+                        <ArrowRight size={10} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <span className="text-zinc-600 font-mono text-xs">Sem destaques</span>
+              )}
+              
             </div>
           </div>
 
