@@ -296,8 +296,12 @@ export default function CheckoutModal({
       setStep(2);
       onClearCart();
 
-      // Open WhatsApp Dispatch link in the same window to ensure mobile compatibility
-      window.location.href = waUrl;
+      // Open WhatsApp Dispatch link
+      const link = document.createElement('a');
+      link.href = waUrl;
+      link.target = '_blank';
+      link.rel = 'noreferrer';
+      link.click();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'orders');
     } finally {
