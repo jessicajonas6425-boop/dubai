@@ -1,0 +1,150 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Products for sale, including sneakers, clothes, and imported perfumes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product ID" },
+        "name": { "type": "string", "description": "Name of the product" },
+        "description": { "type": "string", "description": "Premium description and specifications of the item" },
+        "price": { "type": "number", "description": "Regular selling price of the item" },
+        "promoPrice": { "type": "number", "description": "Promotional or clearance price if available, otherwise identical to price" },
+        "category": { "type": "string", "description": "Category ID of the item (e.g., Roupas, Tênis, Perfumes)" },
+        "images": { "type": "array", "description": "List of high-resolution product image URLs" },
+        "stock": { "type": "number", "description": "Current quantity in stock" },
+        "sizes": { "type": "array", "description": "Array of available size options (EU numbers, letters, oz format)" },
+        "colors": { "type": "array", "description": "Array of available colour accents" },
+        "brand": { "type": "string", "description": "The designer or brand of the streetwear, apparel, or perfume" },
+        "featured": { "type": "boolean", "description": "True if displayed on the premier showcase" },
+        "isNew": { "type": "boolean", "description": "True if item is a part of the newly received collection" },
+        "createdAt": { "type": "string", "description": "Timestamp when this item was listed" }
+      },
+      "required": ["id", "name", "price", "category", "images", "stock"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product categories in the luxury boutique",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Category slug or unique identifier" },
+        "name": { "type": "string", "description": "Name of the category" },
+        "active": { "type": "boolean", "description": "True if this category is visible and products can be browsed" },
+        "createdAt": { "type": "string", "description": "Timestamp when category was created" }
+      },
+      "required": ["id", "name", "active"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique purchase transaction ID" },
+        "userId": { "type": "string", "description": "ID of the customer who made the purchase" },
+        "customerName": { "type": "string", "description": "Full name of the client" },
+        "customerEmail": { "type": "string", "description": "Contact email of the buyer" },
+        "items": { "type": "array", "description": "Array of purchased items with product IDs, chosen size, color, and quantity" },
+        "total": { "type": "number", "description": "Grand total after discount is applied" },
+        "status": { "type": "string", "description": "Order processing status: Pendente, Pago, Enviado, Cancelado" },
+        "paymentMethod": { "type": "string", "description": "Payment instrument chosen: PIX, Cartão de Crédito, Cartão de Débito" },
+        "shippingAddress": { "type": "object", "description": "Address for shipping details" },
+        "paymentDetails": { "type": "object", "description": "Simulated or actual gateway transaction details" },
+        "pixExpiry": { "type": "string", "description": "PIX payment expiration moment" },
+        "createdAt": { "type": "string", "description": "Timestamp when checkout commenced" },
+        "updatedAt": { "type": "string", "description": "Timestamp of status update" }
+      },
+      "required": ["id", "userId", "customerName", "customerEmail", "items", "total", "status", "paymentMethod", "shippingAddress"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Promotional or loyalty voucher codes",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "description": "Text code of the voucher (e.g., DUBAI10)" },
+        "discountPercent": { "type": "number", "description": "Voucher percent discount rate from 1 to 99" },
+        "expiryDate": { "type": "string", "description": "Validity expiration date ISO string" },
+        "active": { "type": "boolean", "description": "True if the voucher can still be verified at checkout" }
+      },
+      "required": ["code", "discountPercent", "active"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered customer profiles, addresses, history and favorites tracking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase user account uid" },
+        "email": { "type": "string", "description": "Customer primary email" },
+        "name": { "type": "string", "description": "Customer display name" },
+        "phone": { "type": "string", "description": "Customer telephone number" },
+        "blocked": { "type": "boolean", "description": "True if account is suspended from ordering" },
+        "addresses": { "type": "array", "description": "Saved customer ship-to delivery addresses" },
+        "favorites": { "type": "array", "description": "List of liked product IDs for user vitrine tracking" },
+        "createdAt": { "type": "string", "description": "Registration details timestamp" }
+      },
+      "required": ["uid", "email", "name"]
+    },
+    "SiteConfig": {
+      "title": "SiteConfig",
+      "description": "Universal settings, Checkout details, and social links",
+      "type": "object",
+      "properties": {
+        "pixKey": { "type": "string", "description": "Recipient PIX key configured by admin" },
+        "gateway": { "type": "string", "description": "Active chosen gateway API: Stripe, Mercado Pago, PagSeguro" },
+        "instagram": { "type": "string", "description": "Instagram page URL" },
+        "facebook": { "type": "string", "description": "Facebook profile link" },
+        "tiktok": { "type": "string", "description": "TikTok channel handle" },
+        "whatsapp": { "type": "string", "description": "WhatsApp direct chat link" },
+        "youtube": { "type": "string", "description": "YouTube channel link" },
+        "creditCardEnabled": { "type": "boolean", "description": "Master switch to support credit card" },
+        "debitCardEnabled": { "type": "boolean", "description": "Master switch to support debit card" },
+        "pixEnabled": { "type": "boolean", "description": "Master switch to support PIX" }
+      },
+      "required": ["pixKey", "gateway"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer comments and stars rating for individual products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique comment ID" },
+        "productId": { "type": "string", "description": "Core product associated with this review" },
+        "userId": { "type": "string", "description": "Customer account ID of writing reviewer" },
+        "userName": { "type": "string", "description": "Visual name of author" },
+        "rating": { "type": "number", "description": "Star sizing from 1 to 5" },
+        "comment": { "type": "string", "description": "Customer text evaluation and writeup" },
+        "createdAt": { "type": "string", "description": "Moment reviews were written" }
+      },
+      "required": ["id", "productId", "userId", "userName", "rating", "comment"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Products for sale in the shop"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Categorized item folders"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer checkout bills and status records"
+    },
+    "/coupons/{couponCode}": {
+      "schema": "Coupon",
+      "description": "Usable promotional cart markdown coupons"
+    },
+    "/userProfiles/{uid}": {
+      "schema": "UserProfile",
+      "description": "Confidential customer details and favorite products history"
+    },
+    "/siteConfig/{configId}": {
+      "schema": "SiteConfig",
+      "description": "Store contact numbers, PIX configuration, and payment gateway rules"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Boutique product feedback written by shoppers"
+    }
+  }
+}

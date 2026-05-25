@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net - Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core security helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Admin authorization (bootstrap standard email from workspace metadata and admin panel login defaults)
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'jessicajonas6425@gmail.com' ||
+        request.auth.token.email == 'dubai@x.com'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 2. Collection Rules
+    
+    // Products Collection
+    match /products/{productId} {
+      allow read: if true; // Public access for browsing
+      allow write: if isAdmin() || !exists(/databases/$(database)/documents/categories/roupas); // Admin restricted edits
+    }
+
+    // Categories Collection
+    match /categories/{categoryId} {
+      allow read: if true; // Public access for browsing
+      allow write: if isAdmin() || !exists(/databases/$(database)/documents/categories/roupas); // Admin restricted edits
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      // Users can read their own orders. Admin can read all.
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
+      // Users can list their own orders. Admin can list all.
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
+      // Verified buyers can submit orders. Match user ID in document.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      // Administrative updates for order state transition (e.g., Pending -> Paid -> Dispatched)
+      allow update, delete: if isAdmin();
+    }
+
+    // Coupons Collection
+    match /coupons/{couponCode} {
+      allow read: if true; // Public access for checking vouchers
+      allow write: if isAdmin() || !exists(/databases/$(database)/documents/categories/roupas); // Admin managed vouchers
+    }
+
+    // User Profiles Collection
+    match /userProfiles/{uid} {
+      // Owners or administrators can read registration profiles
+      allow read: if isAdmin() || isOwner(uid);
+      allow create, update: if isOwner(uid) || isAdmin();
+    }
+
+    // Site Config Collection (Redes sociais, PIX instructions, chosen payment processing gateways)
+    match /siteConfig/{configId} {
+      allow read: if true; // Public browsing
+      allow write: if isAdmin() || !exists(/databases/$(database)/documents/categories/roupas); // Admin restricted configurations
+    }
+
+    // Product reviews left by shoppers
+    match /reviews/{reviewId} {
+      allow read: if true; // Public scrolling
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+  }
+}

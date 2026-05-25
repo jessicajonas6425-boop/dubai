@@ -1,0 +1,6 @@
+{
+  "name": "Dubai Store",
+  "description": "E-commerce premium e futurista especializado em roupas, tênis e perfumes importados masculinos e femininos com suporte a checkout simulado e controle admin completo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
