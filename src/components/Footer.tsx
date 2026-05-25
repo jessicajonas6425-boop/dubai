@@ -15,7 +15,7 @@ export default function Footer({ siteConfig, onOpenAdmin }: FooterProps) {
     <footer className="relative bg-[#070707] border-t border-white/5 py-16 text-zinc-400 select-none">
       
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-left">
           
           {/* Col 1: Brand description and contacts of luxury store */}
           <div className="space-y-4">
@@ -33,26 +33,6 @@ export default function Footer({ siteConfig, onOpenAdmin }: FooterProps) {
             <p className="text-xs text-zinc-500 leading-relaxed font-sans">
               Edição premium de vestuário de grife, sneakers raros streetwear e frascos de fragrâncias de luxo dos maiores estilistas do mundo. Presença e exclusividade faturados para todo o Brasil.
             </p>
-            <div className="text-[10px] font-mono text-zinc-650 tracking-wider">
-              CNPJ: 45.289.412/0001-99 • São Paulo / SP
-            </div>
-          </div>
-
-          {/* Col 2: Customer Care and legal documents references */}
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-white">Suporte VIP</h4>
-            <div className="flex flex-col space-y-2.5 text-xs text-zinc-500">
-              <span className="font-sans">SAC Dubai: 0800-400-LUXO</span>
-              <span className="font-sans">Atendimento: Segunda a Sábado</span>
-              <a
-                href={siteConfig.whatsapp || 'https://wa.me/5511999999999'}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#D4AF37] hover:text-white font-mono text-[9px] uppercase font-bold tracking-[0.2em] transition-colors"
-              >
-                Chamar Concierge WhatsApp
-              </a>
-            </div>
           </div>
 
           {/* Col 3: Safe policy documents toggles */}
