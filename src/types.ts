@@ -50,7 +50,7 @@ export interface Order {
   items: OrderItem[];
   total: number;
   status: 'Pendente' | 'Pago' | 'Enviado' | 'Cancelado';
-  paymentMethod: 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
+  paymentMethod: 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito' | 'WhatsApp';
   shippingAddress: OrderAddress;
   paymentDetails?: {
     pixQrCode?: string;

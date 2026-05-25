@@ -20,7 +20,7 @@ export default function CheckoutModal({
   user,
   siteConfig,
 }: CheckoutModalProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Delivery Address & Coupon, 2: Payment instrument, 3: Order CompletedReceipt
+  const [step, setStep] = useState<1 | 2>(1); // 1: Delivery Address & Coupon, 2: Receipt/WhatsApp Dispatch
 
   // Address State
   const [address, setAddress] = useState<OrderAddress>({
@@ -42,15 +42,6 @@ export default function CheckoutModal({
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponError, setCouponError] = useState<string>('');
   const [couponLoading, setCouponLoading] = useState<boolean>(false);
-
-  // Payment Selection State
-  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'Cartão de Crédito' | 'Cartão de Débito'>('PIX');
-
-  // Simulated Card Forms
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardHolder, setCardHolder] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
 
   // Transaction Receipt details
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
@@ -200,10 +191,8 @@ export default function CheckoutModal({
     }, 100);
   };
 
-  // Process core Order validation, insert document and subtract stock
-  const handleCompletePayment = async () => {
-    if (step !== 2) return;
-    
+  // Process core Order validation, insert document and trigger WhatsApp
+  const handleCompleteOrder = async () => {
     // Address validation guard
     if (!address.street || !address.number || !address.city || !address.state || !address.zipCode) {
       alert('Por favor, preencha todos os campos obrigatórios do endereço.');
@@ -213,8 +202,6 @@ export default function CheckoutModal({
 
     setIsProcessingOrder(true);
     const orderId = 'DBI-' + Math.floor(100000 + Math.random() * 900000);
-
-    const pixCode = `00020101021226870014br.gov.bcb.pix2565${siteConfig.pixKey}5204000053039865405R$${grandTotal.toFixed(2)}5802BR5911DUBAISTORE6009SAOPAULO62070503***6304`;
 
     const newOrder: Order = {
       id: orderId,
@@ -231,15 +218,9 @@ export default function CheckoutModal({
         quantity: item.quantity,
       })),
       total: grandTotal,
-      status: 'Pago', // Auto pay in simulation for best premium feel!
-      paymentMethod,
+      status: 'Pendente',
+      paymentMethod: 'WhatsApp',
       shippingAddress: address,
-      paymentDetails: {
-        pixQrCode: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixCode)}`,
-        pixCopyPaste: pixCode,
-        cardBrand: cardNumber.startsWith('4') ? 'Visa' : cardNumber.startsWith('5') ? 'Mastercard' : 'Premium Card',
-        cardLastDigits: cardNumber ? cardNumber.slice(-4) : '9988',
-      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -270,11 +251,11 @@ export default function CheckoutModal({
       const cleanPhone = (siteConfig.whatsapp || '')
         .replace('https://wa.me/', '')
         .replace('https://api.whatsapp.com/send?phone=', '')
-        .replace(/\D/g, '') || '5511999999999';
+        .replace(/\D/g, '') || '5521985242409';
 
       // Construct magnificent premium WhatsApp summary text
       let msgs = `👑 *DUBAI LUXURY STORE* 👑\n`;
-      msgs += `*✦ NOVO PEDIDO CONFIRMADO ✦*\n\n`;
+      msgs += `*✦ NOVO PEDIDO RECEBIDO ✦*\n\n`;
       msgs += `📦 *Pedido ID:* \`${orderId}\`\n`;
       msgs += `📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}\n\n`;
       
@@ -289,8 +270,7 @@ export default function CheckoutModal({
       msgs += `• *Bairro:* ${address.neighborhood}\n`;
       msgs += `• *Cidade/UF:* ${address.city} - ${address.state}\n\n`;
       
-      msgs += `💼 *PAGAMENTO & ENVIO:*\n`;
-      msgs += `• *Método:* ${paymentMethod}\n`;
+      msgs += `💼 *ENVIO:*\n`;
       msgs += `• *Frete:* R$ ${(shippingPrice !== null ? shippingPrice : 0).toFixed(2)} (${shippingCarrier})\n\n`;
 
       msgs += `🛒 *ITENS DO PEDIDO:*\n`;
@@ -308,12 +288,12 @@ export default function CheckoutModal({
         msgs += `• *Cupom:* ${appliedCoupon.code} (-${appliedCoupon.discountPercent}%)\n`;
       }
       msgs += `🔥 *TOTAL GERAL:* R$ ${grandTotal.toFixed(2)}\n\n`;
-      msgs += `✦ _Pedido enviado da vitrine inspirada em Dubai de alta ostentação._ ✦`;
+      msgs += `✦ _Pedido aguardando confirmação de pagamento via WhatsApp._ ✦`;
 
       const waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(msgs)}`;
 
       setCreatedOrder(newOrder);
-      setStep(3);
+      setStep(2);
       onClearCart();
 
       // Open WhatsApp Dispatch link in a new tab
@@ -340,22 +320,19 @@ export default function CheckoutModal({
         exit={{ scale: 0.95, opacity: 0 }}
         className="w-full max-w-4xl rounded-sm border border-white/10 bg-[#0A0A0A] p-6 sm:p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
       >
-        {/* Modal headers */}
         <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
           <div className="flex items-center gap-3">
             <span className="h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse" />
             <h2 className="text-[13px] font-bold tracking-[0.2em] text-white font-sans uppercase">
-              {step === 1 ? 'Endereço & Cupom' : step === 2 ? 'Meio de Pagamento' : 'Sucesso da Compra'}
+              {step === 1 ? 'Endereço & Cupom' : 'Finalizando Pedido'}
             </h2>
           </div>
-          {step !== 3 && (
-            <button
-              onClick={onClose}
-              className="rounded-full bg-white/5 p-1.5 text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <X size={18} />
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="rounded-full bg-white/5 p-1.5 text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Form container */}
@@ -529,189 +506,13 @@ export default function CheckoutModal({
                       ✓ CUPOM APLICADO: {appliedCoupon.code} - {appliedCoupon.discountPercent}% DE DESCONTO VIP CONCEDIDO!
                     </p>
                   )}
-
-                  {/* Fast testing coupon suggest box */}
-                  {!appliedCoupon && (
-                    <div className="mt-4 flex gap-2 items-center flex-wrap">
-                      <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-white/30">Testar cupons:</span>
-                      {['DUBAI10', 'LUXO20', 'VIPVIP'].map((mockCode) => (
-                        <button
-                          key={mockCode}
-                          type="button"
-                          onClick={() => handleApplyQuickCoupon(mockCode)}
-                          className="bg-white/5 text-zinc-400 hover:text-[#D4AF37] hover:bg-white/10 font-mono text-[9px] px-3 py-1.5 rounded-sm border border-white/5 transition-colors cursor-pointer"
-                        >
-                          {mockCode}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
               </div>
             )}
 
-            {/* Step 2 Form: Payment Instrument details */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <div className="text-[10px] font-sans text-white/40 font-bold uppercase tracking-[0.2em] mb-3 flex items-center gap-1.5">
-                  <CreditCard size={13} className="text-[#D4AF37]" />
-                  Selecione o Método de Liquidação
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  {/* PIX Selector */}
-                  <button
-                    onClick={() => setPaymentMethod('PIX')}
-                    className={`flex flex-col items-center justify-center p-4 rounded-sm border transition-all cursor-pointer ${
-                      paymentMethod === 'PIX'
-                        ? 'bg-[#D4AF37]/10 border-[#D4AF37] text-[#D4AF37]'
-                        : 'bg-white/5 text-white/50 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <QrCode size={20} />
-                    <span className="text-[9px] font-sans font-bold uppercase tracking-wider mt-2.5">PIX</span>
-                    <span className="text-[8px] text-zinc-500 font-sans tracking-wide mt-1">Instantâneo</span>
-                  </button>
-
-                  {/* Credit Card Selector */}
-                  <button
-                    onClick={() => setPaymentMethod('Cartão de Crédito')}
-                    className={`flex flex-col items-center justify-center p-4 rounded-sm border transition-all cursor-pointer ${
-                      paymentMethod === 'Cartão de Crédito'
-                        ? 'bg-[#D4AF37]/10 border-[#D4AF37] text-[#D4AF37]'
-                        : 'bg-white/5 text-white/50 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <CreditCard size={20} />
-                    <span className="text-[9px] font-sans font-bold uppercase tracking-wider mt-2.5">Crédito</span>
-                    <span className="text-[8px] text-zinc-500 font-sans tracking-wide mt-1">Até 12x s/ juros</span>
-                  </button>
-
-                  {/* Debit Card Selector */}
-                  <button
-                    onClick={() => setPaymentMethod('Cartão de Débito')}
-                    className={`flex flex-col items-center justify-center p-4 rounded-sm border transition-all cursor-pointer ${
-                      paymentMethod === 'Cartão de Débito'
-                        ? 'bg-[#D4AF37]/10 border-[#D4AF37] text-[#D4AF37]'
-                        : 'bg-white/5 text-white/50 border-white/5 hover:text-white'
-                    }`}
-                  >
-                    <CreditCard size={20} />
-                    <span className="text-[9px] font-sans font-bold uppercase tracking-wider mt-2.5">Débito</span>
-                    <span className="text-[8px] text-zinc-500 font-sans tracking-wide mt-1">À Vista</span>
-                  </button>
-                </div>
-
-                {/* Sub form of selected Payment options */}
-                <div className="rounded-sm border border-white/5 bg-white/[0.02] p-6 min-h-[160px]">
-                  {paymentMethod === 'PIX' ? (
-                    <div className="flex flex-col items-center justify-center text-center space-y-3">
-                      <QrCode size={40} className="text-[#D4AF37] stroke-[1.2]" />
-                      <div>
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider">Liquidação por Qrcode PIX</h4>
-                        <p className="text-[11px] text-zinc-500 mt-1.5 max-w-sm font-serif">
-                          O pagamento é processado e liquidado na hora. Nós geramos o código copia-e-cola e o QR code para você escanear.
-                        </p>
-                      </div>
-                      <div className="flex gap-2 items-center text-[9px] font-sans font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full mt-2 uppercase">
-                        <Flame size={12} className="animate-pulse" />
-                        DESCONTO DE 5% ADICIONAL NO PIX AUTOMÁTICO
-                      </div>
-                    </div>
-                  ) : (
-                    /* Elegant Credit Card Form simulation mockup */
-                    <div className="space-y-4">
-                      
-                      {/* Virtual card preview visual */}
-                      <div className="aspect-[1.58/1] w-72 max-w-full rounded-sm bg-gradient-to-tr from-[#141414] via-[#0A0A0A] to-[#1F1F1F] p-5 border border-white/10 shadow-xl text-left select-none relative overflow-hidden mx-auto mb-4">
-                        <div className="absolute right-3 top-3 text-[8px] font-mono tracking-[0.2em] text-white/30 uppercase">Dubai Black</div>
-                        <div className="h-8 w-11 rounded-sm bg-[#D4AF37] mb-6" /> {/* Chip */}
-                        
-                        <div className="text-xs font-mono tracking-widest text-[#D4AF37] mb-4">
-                          {cardNumber || '•••• •••• •••• ••••'}
-                        </div>
-
-                        <div className="flex justify-between mt-2 flex-wrap">
-                          <div>
-                            <div className="text-[7px] font-sans font-bold text-white/30 uppercase tracking-widest">Titular</div>
-                            <div className="text-[9px] font-mono text-white font-bold truncate max-w-44 uppercase">
-                              {cardHolder || 'NOME PREMIUM'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[7px] font-sans font-bold text-white/30 uppercase tracking-widest">Validade</div>
-                            <div className="text-[9px] font-mono text-white font-bold">{cardExpiry || 'MM/AA'}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card input controls */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[9px] font-sans text-white/50 block font-bold uppercase mb-1">Número do Cartão:</label>
-                          <input
-                            type="text"
-                            maxLength={19}
-                            placeholder="4000 1234 5678 9010"
-                            value={cardNumber}
-                            onChange={(e) => setCardNumber(e.target.value.replace(/\s?/g, '').replace(/(\d{4})/g, '$1 ').trim())}
-                            className="bg-white/5 text-white rounded-sm p-3 text-xs focus:outline-none w-full border border-white/5 focus:border-[#D4AF37]"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-sans text-white/50 block font-bold uppercase mb-1">Nome do Titular:</label>
-                          <input
-                            type="text"
-                            placeholder="Ex: GABRIEL MOTA"
-                            value={cardHolder}
-                            onChange={(e) => setCardHolder(e.target.value)}
-                            className="bg-white/5 text-white rounded-sm p-3 text-xs focus:outline-none w-full border border-white/5 focus:border-[#D4AF37]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[9px] font-sans text-white/50 block font-bold uppercase mb-1">Validade (MM/AA):</label>
-                          <input
-                            type="text"
-                            maxLength={5}
-                            placeholder="12/28"
-                            value={cardExpiry}
-                            onChange={(e) => setCardExpiry(e.target.value)}
-                            className="bg-white/5 text-white rounded-sm p-3 text-xs focus:outline-none w-full border border-white/5 focus:border-[#D4AF37] text-center"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-sans text-white/50 block font-bold uppercase mb-1">CVV:</label>
-                          <input
-                            type="password"
-                            maxLength={4}
-                            placeholder="123"
-                            value={cardCvv}
-                            onChange={(e) => setCardCvv(e.target.value)}
-                            className="bg-white/5 text-white rounded-sm p-3 text-xs focus:outline-none w-full border border-white/5 focus:border-[#D4AF37] text-center"
-                          />
-                        </div>
-                      </div>
-
-                    </div>
-                  )}
-                </div>
-
-                {siteConfig.gateway === 'Mercado Pago' && (
-                  <div className="flex items-center justify-center gap-2 text-[9px] text-[#D4AF37] bg-[#D4AF37]/5 border border-[#D4AF37]/10 py-2.5 px-4 rounded-sm max-w-sm mx-auto uppercase tracking-wider font-sans font-bold mt-4 animate-pulse">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    Liquidação segura via Mercado Pago VIP Ativo
-                  </div>
-                )}
-
-              </div>
-            )}
-
-            {/* Step 3 Screen: Order Complete screen Receipt */}
-            {step === 3 && createdOrder && (
+            {/* Step 2 Screen: Order Complete screen */}
+            {step === 2 && createdOrder && (
               <div className="flex flex-col items-center justify-center text-center space-y-6 py-6">
                 <motion.div
                   initial={{ scale: 0.8, rotate: -15 }}
@@ -722,35 +523,14 @@ export default function CheckoutModal({
                 </motion.div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white uppercase tracking-wider font-display">Seu pedido foi faturado!</h3>
+                  <h3 className="text-xl font-bold text-white uppercase tracking-wider font-display">Pedido Recebido!</h3>
                   <p className="text-xs text-zinc-400 max-w-sm font-serif">
-                    Parabéns por sua compra na Dubai Store. Um e-mail de confirmação foi despachado para{' '}
-                    <span className="text-[#D4AF37] font-bold font-sans">{createdOrder.customerEmail}</span> contendo as credenciais de rastreio de frota.
+                    Seu pedido foi registrado. Estamos preparando seu resumo e abrindo o WhatsApp da Dubai Store para finalizar.
                   </p>
                 </div>
 
-                {/* Specific payment options render review */}
-                {createdOrder.paymentMethod === 'PIX' && (
-                  <div className="rounded-sm border border-white/5 bg-white/[0.01] p-6 space-y-4 max-w-sm w-full">
-                    <span className="text-[9px] font-sans text-white/40 font-bold uppercase tracking-widest block">QRCode PIX para Liquidação imediata:</span>
-                    <div className="bg-white p-3 rounded-sm inline-block mx-auto border border-white/10 shadow-lg">
-                      <img src={createdOrder.paymentDetails?.pixQrCode || undefined} alt="PIX Qrcode" className="h-44 w-44" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <button
-                        onClick={handleCopyPix}
-                        className="w-full flex items-center justify-center gap-2 rounded-sm bg-white/5 hover:bg-white/10 text-white py-3.5 text-xs font-sans font-bold uppercase tracking-[0.15em] transition cursor-pointer"
-                      >
-                        <Clipboard size={12} className="text-[#D4AF37]" />
-                        Copiar Código PIX
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 <div className="text-[11px] font-mono text-white/50 bg-white/5 px-5 py-2.5 rounded-sm border border-white/5 flex items-center gap-1.5 tracking-wider">
-                  TRANS-REF: <span className="text-[#D4AF37] font-black">{createdOrder.id}</span>
+                  PEDIDO-REF: <span className="text-[#D4AF37] font-black">{createdOrder.id}</span>
                 </div>
 
                 <div className="w-full pt-4">
@@ -761,7 +541,6 @@ export default function CheckoutModal({
                     Voltar para a Vitrine
                   </button>
                 </div>
-
               </div>
             )}
 
@@ -812,15 +591,6 @@ export default function CheckoutModal({
                   </div>
                 )}
 
-                {paymentMethod === 'PIX' && step === 2 && (
-                  <div className="flex justify-between items-center text-emerald-400 font-bold">
-                    <span>Desconto especial PIX (5%)</span>
-                    <span className="font-mono">
-                      - R$ {(grandTotal * 0.05).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                )}
-
                 <div className="flex justify-between items-center text-zinc-400">
                   <span>Frete de Envio</span>
                   {shippingPrice !== null ? (
@@ -833,55 +603,34 @@ export default function CheckoutModal({
                 </div>
 
                 <div className="border-t border-white/10 my-2 pt-3.5 flex justify-between items-center text-white">
-                  <span className="text-xs font-bold uppercase tracking-[0.15em]">Total Concedido</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.15em]">Total a Pagar</span>
                   <span className="text-xl font-bold text-[#D4AF37] font-sans">
-                    R$ {(paymentMethod === 'PIX' && step === 2 ? grandTotal * 0.95 : grandTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
 
               {/* Stepper buttons trigger */}
-              {step !== 3 && (
-                <div className="pt-2">
-                  {step === 1 ? (
-                    <button
-                      id="checkout-next-payment-btn"
-                      onClick={() => {
-                        if (!address.street || !address.number || !address.city || !address.state || !address.zipCode) {
-                          alert('Por favor, preencha todos os campos obrigatórios do endereço.');
-                          return;
-                        }
-                        if (shippingPrice === null) {
-                          setShippingPrice(22.50);
-                          setShippingCarrier('SEDEX VIP • Envio Expresso');
-                        }
-                        setStep(2);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 rounded-sm bg-[#D4AF37] hover:bg-white py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-black transition-all shadow-lg hover:shadow-[#D4AF37]/20 border border-[#D4AF37] cursor-pointer"
-                    >
-                      Seguir para Pagamento
-                      <ArrowRight size={14} />
-                    </button>
-                  ) : (
-                    <div className="space-y-3">
-                      <button
-                        id="checkout-submit-order-payment-btn"
-                        onClick={handleCompletePayment}
-                        disabled={isProcessingOrder}
-                        className="w-full rounded-sm bg-[#D4AF37] hover:bg-white py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-black transition-all cursor-pointer shadow-lg hover:shadow-[#D4AF37]/20 border border-[#D4AF37] disabled:opacity-30 flex items-center justify-center gap-2"
-                      >
-                        {isProcessingOrder ? 'Processando Autenticação...' : 'Finalizar Pedido de Luxo'}
-                      </button>
-                      <button
-                        onClick={() => setStep(1)}
-                        className="w-full text-center text-zinc-500 hover:text-white font-sans text-[10px] uppercase font-bold tracking-widest py-1 cursor-pointer"
-                      >
-                        ← Voltar para endereço
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="pt-2">
+                {step === 1 ? (
+                  <button
+                    id="checkout-finalize-btn"
+                    onClick={handleCompleteOrder}
+                    disabled={isProcessingOrder}
+                    className="w-full flex items-center justify-center gap-2 rounded-sm bg-[#D4AF37] hover:bg-white py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-black transition-all shadow-lg hover:shadow-[#D4AF37]/20 border border-[#D4AF37] cursor-pointer disabled:opacity-30"
+                  >
+                    {isProcessingOrder ? 'Processando...' : 'Finalizar Pedido via WhatsApp'}
+                    <Smartphone size={14} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={onClose}
+                    className="w-full rounded-sm bg-white/5 hover:bg-white/10 py-4 font-sans text-xs font-bold uppercase tracking-[0.2em] text-white transition-all cursor-pointer border border-white/10"
+                  >
+                    Fechar
+                  </button>
+                )}
+              </div>
 
           </div>
 
