@@ -219,18 +219,6 @@ export default function Navbar({
               </button>
             )}
 
-            {/* PWA Install Button */}
-            {showInstallButton && onInstallClick && (
-              <button
-                onClick={onInstallClick}
-                className="flex items-center gap-1.5 text-[10px] text-[#D4AF37] bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-full px-3 py-1 font-mono hover:bg-[#D4AF37]/25 transition-all font-bold tracking-wider uppercase cursor-pointer animate-pulse"
-                title="Instalar aplicativo"
-              >
-                <Smartphone size={11} />
-                <span>Instalar App</span>
-              </button>
-            )}
-
             {/* Profile Sign-in & Profile dropdown */}
             <button
               id="profile-action-btn"
@@ -493,18 +481,6 @@ export default function Navbar({
 
               {/* Admin Panel and Profile logs button inside mobile */}
               <div className="border-t border-white/10 pt-6 space-y-3">
-                {showInstallButton && onInstallClick && (
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onInstallClick();
-                    }}
-                    className="flex items-center gap-2 text-xs text-[#D4AF37] font-mono py-2 w-full text-left font-bold tracking-wider uppercase animate-pulse"
-                  >
-                    <Smartphone size={14} />
-                    Instalar Aplicativo
-                  </button>
-                )}
                 {isAdminUser && (
                   <button
                     onClick={() => {

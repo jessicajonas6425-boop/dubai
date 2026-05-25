@@ -182,13 +182,7 @@ export default function Hero({ products, onExploreClick, onSelectCategory, onPro
           {/* Right Column: Key limited stats with exquisite borders */}
           <div className="flex flex-col items-end justify-center space-y-10 z-10 text-right lg:pl-6">
             
-            <div className="space-y-1">
-              <div className="text-4xl font-light text-white font-display">
-                98 <span className="text-xs text-[#D4AF37] uppercase tracking-widest ml-1 font-sans font-bold">Lotes</span>
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-sans">
-                Importações Reais da Península Arábica
-              </div>
+            <div className="space-y-1">                
             </div>
 
             <div className="space-y-3.5 w-full max-w-[200px] border-t border-b border-white/10 py-5">
@@ -206,13 +200,7 @@ export default function Hero({ products, onExploreClick, onSelectCategory, onPro
               </div>
             </div>
 
-            <div className="flex justify-start items-center gap-3 bg-zinc-950/40 p-3 rounded-md border border-white/5">
-              <Sparkles size={16} className="text-[#D4AF37]" />
-              <div className="text-left">
-                <p className="text-[9px] uppercase tracking-[0.1em] text-white/40 font-sans">Padrão de Segurança</p>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-[#D4AF37] font-bold font-sans">Criptografia SSL VIP</p>
-              </div>
-            </div>
+
 
           </div>
 

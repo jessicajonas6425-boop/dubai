@@ -17,6 +17,8 @@ import CheckoutModal from './components/CheckoutModal';
 import UserAccount from './components/UserAccount';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
+import ChatAI from './components/ChatAI';
+import WhatsAppFloatingIcon from './components/WhatsAppFloatingIcon';
 
 // Lucide Icons
 import { SlidersHorizontal, Search, Sparkles, Filter, X, ArrowUpDown, RefreshCw, Layers, Smartphone, Plus, ArrowUpFromLine, Download } from 'lucide-react';
@@ -31,7 +33,7 @@ export default function App() {
     instagram: '',
     facebook: '',
     tiktok: '',
-    whatsapp: '',
+    whatsapp: 'https://wa.me/5521985242409',
     youtube: '',
     creditCardEnabled: true,
     debitCardEnabled: true,
@@ -631,6 +633,14 @@ export default function App() {
           }
         }}
       />
+
+      {/* WhatsApp Floating Icon */}
+      <WhatsAppFloatingIcon phoneNumber={siteConfig.whatsapp} />
+
+      {/* AI Assistant on Homepage Only */}
+      {activeCategory === 'all' && !searchQuery && (
+        <ChatAI siteConfig={siteConfig} />
+      )}
 
       {/* MODAL 1: Product detailed views */}
       <ProductDetailModal

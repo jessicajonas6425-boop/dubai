@@ -333,12 +333,12 @@ export default function CheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="w-full max-w-4xl rounded-sm border border-white/10 bg-[#0A0A0A] p-6 sm:p-8 overflow-hidden relative shadow-2xl"
+        className="w-full max-w-4xl rounded-sm border border-white/10 bg-[#0A0A0A] p-6 sm:p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-thin"
       >
         {/* Modal headers */}
         <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">

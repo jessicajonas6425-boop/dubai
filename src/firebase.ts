@@ -238,7 +238,7 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
   instagram: 'https://instagram.com/dubaistore_luxo',
   facebook: 'https://facebook.com/dubaistore',
   tiktok: 'https://tiktok.com/@dubaistore',
-  whatsapp: 'https://wa.me/5511999999999',
+  whatsapp: 'https://wa.me/5521985242409',
   youtube: 'https://youtube.com/dubaistore',
   creditCardEnabled: true,
   debitCardEnabled: true,
