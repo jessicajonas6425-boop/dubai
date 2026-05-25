@@ -247,11 +247,8 @@ export default function CheckoutModal({
       // Submit batch atomic operations
       await batch.commit();
 
-      // Clear formatting of whatsapp number
-      const cleanPhone = (siteConfig.whatsapp || '')
-        .replace('https://wa.me/', '')
-        .replace('https://api.whatsapp.com/send?phone=', '')
-        .replace(/\D/g, '') || '5521985242409';
+      // Force dynamic fix telephone
+      const cleanPhone = '5521985242409';
 
       // Construct magnificent premium WhatsApp summary text
       let msgs = `👑 *DUBAI LUXURY STORE* 👑\n`;
