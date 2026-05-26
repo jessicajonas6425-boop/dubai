@@ -59,7 +59,8 @@ export default function CheckoutModal({
   }, 0);
 
   const discountAmount = appliedCoupon ? (rawSubtotal * appliedCoupon.discountPercent) / 100 : 0;
-  const currentShipping = shippingPrice !== null ? shippingPrice : 0;
+  const isFreeShipping = !!(siteConfig.freeShippingMin && siteConfig.freeShippingMin > 0 && rawSubtotal >= siteConfig.freeShippingMin);
+  const currentShipping = isFreeShipping ? 0 : (shippingPrice !== null ? shippingPrice : 0);
   const grandTotal = Math.max(0, rawSubtotal - discountAmount + currentShipping);
 
   const handleCepLookup = async (cepCode: string) => {
@@ -247,8 +248,14 @@ export default function CheckoutModal({
       // Submit batch atomic operations
       await batch.commit();
 
-      // Force dynamic fix telephone
-      const cleanPhone = '5521985242409';
+      // Extract phone number digits from siteConfig.whatsapp, fallback to a defaults if empty or not found
+      let cleanPhone = '5521985242409';
+      if (siteConfig.whatsapp) {
+        const numbersOnly = siteConfig.whatsapp.replace(/\D/g, '');
+        if (numbersOnly && numbersOnly.length >= 8) {
+          cleanPhone = numbersOnly;
+        }
+      }
 
       // Construct magnificent premium WhatsApp summary text
       let msgs = `👑 *DUBAI LUXURY STORE* 👑\n`;
@@ -268,7 +275,7 @@ export default function CheckoutModal({
       msgs += `• *Cidade/UF:* ${address.city} - ${address.state}\n\n`;
       
       msgs += `💼 *ENVIO:*\n`;
-      msgs += `• *Frete:* R$ ${(shippingPrice !== null ? shippingPrice : 0).toFixed(2)} (${shippingCarrier})\n\n`;
+      msgs += `• *Frete:* ${isFreeShipping ? 'GRÁTIS' : `R$ ${(shippingPrice !== null ? shippingPrice : 0).toFixed(2)}`} (${shippingCarrier})\n\n`;
 
       msgs += `🛒 *ITENS DO PEDIDO:*\n`;
       cart.forEach((item, index) => {
@@ -470,9 +477,20 @@ export default function CheckoutModal({
                     )}
                   </div>
                   {shippingPrice !== null && (
-                    <div className="mt-2 text-[10px] text-emerald-400 font-sans font-semibold uppercase tracking-wider flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Frete Calculado: R$ {shippingPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ({shippingCarrier})
+                    <div className="mt-2 text-[10px] font-sans font-semibold uppercase tracking-wider space-y-1">
+                      <div className="flex items-center gap-1 text-emerald-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        {isFreeShipping ? (
+                          <span>Frete Calculado: GRÁTIS por compra mínima! ({shippingCarrier})</span>
+                        ) : (
+                          <span>Frete Calculado: R$ {shippingPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ({shippingCarrier})</span>
+                        )}
+                      </div>
+                      {siteConfig.freeShippingMin && siteConfig.freeShippingMin > 0 && !isFreeShipping && (
+                        <div className="text-[#D4AF37] font-medium tracking-wide flex items-center gap-1 lowercase">
+                          <span>✦ compre mais *R$ {(siteConfig.freeShippingMin - rawSubtotal).toFixed(2)}* para garantir frete grátis!</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -590,7 +608,9 @@ export default function CheckoutModal({
 
                 <div className="flex justify-between items-center text-zinc-400">
                   <span>Frete de Envio</span>
-                  {shippingPrice !== null ? (
+                  {isFreeShipping ? (
+                    <span className="font-semibold text-emerald-400">GRÁTIS</span>
+                  ) : shippingPrice !== null ? (
                     <span className="font-mono text-zinc-100">
                       R$ {shippingPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>

@@ -467,11 +467,7 @@ export default function App() {
           setIsAdminOpen(true);
         }}
         onCheckout={() => {
-          if (!user) {
-            setIsAuthOpen(true);
-          } else {
-            setIsCheckoutOpen(true);
-          }
+          setIsCheckoutOpen(true);
         }}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}

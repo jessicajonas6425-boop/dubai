@@ -95,6 +95,7 @@ export interface SiteConfig {
   pixEnabled: boolean;
   mercadoPagoToken?: string;
   mercadoPagoPublicKey?: string;
+  freeShippingMin?: number; // Minimum transaction total for free shipping
 }
 
 export interface Review {

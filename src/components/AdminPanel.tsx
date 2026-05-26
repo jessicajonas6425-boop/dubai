@@ -79,6 +79,7 @@ export default function AdminPanel({
   const [cfgPixEnabled, setCfgPixEnabled] = useState(true);
   const [cfgMercadoPagoToken, setCfgMercadoPagoToken] = useState('');
   const [cfgMercadoPagoPublicKey, setCfgMercadoPagoPublicKey] = useState('');
+  const [cfgFreeShippingMin, setCfgFreeShippingMin] = useState<number>(0);
   const [savingConfig, setSavingConfig] = useState(false);
 
   useEffect(() => {
@@ -101,6 +102,7 @@ export default function AdminPanel({
     setCfgPixEnabled(siteConfig.pixEnabled ?? true);
     setCfgMercadoPagoToken(siteConfig.mercadoPagoToken || '');
     setCfgMercadoPagoPublicKey(siteConfig.mercadoPagoPublicKey || '');
+    setCfgFreeShippingMin(siteConfig.freeShippingMin ?? 0);
   }, [siteConfig]);
 
   const fetchOrdersList = async () => {
@@ -359,6 +361,7 @@ export default function AdminPanel({
       pixEnabled: cfgPixEnabled,
       mercadoPagoToken: cfgMercadoPagoToken.trim(),
       mercadoPagoPublicKey: cfgMercadoPagoPublicKey.trim(),
+      freeShippingMin: Number(cfgFreeShippingMin) || 0,
     };
 
     try {
@@ -1141,6 +1144,18 @@ export default function AdminPanel({
                       placeholder="Como telefone, e-mail, etc."
                       className="bg-zinc-900 text-white rounded-lg p-2.5 border border-zinc-800 text-xs w-full focus:outline-none"
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-mono text-zinc-500 block mb-1">Valor de Compra para Frete Grátis (R$):</label>
+                    <input
+                      type="number"
+                      value={cfgFreeShippingMin === 0 ? '' : cfgFreeShippingMin}
+                      onChange={(e) => setCfgFreeShippingMin(Number(e.target.value) || 0)}
+                      placeholder="Ex: 299 (Coloque 0 para desabilitar)"
+                      className="bg-zinc-900 text-white rounded-lg p-2.5 border border-zinc-800 text-xs w-full focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="text-[9px] font-mono text-zinc-500 block mt-1">Clientes receberão frete grátis se o subtotal atingir ou superar este valor.</span>
                   </div>
 
                   <div>
