@@ -59,7 +59,7 @@ export default function Hero({ products, onExploreClick, onSelectCategory, onPro
             </div>
             
             <p className="text-white/60 text-sm leading-relaxed max-w-[320px] font-serif">
-              A mais cobiçada seleção inspirada nas maiores boutiques de Dubai. Sneakers ultra-exclusivos, frascos selecionados da alta perfumaria árabe e vestuários de grife de extrema ostentação.
+              Sinta a verdadeira essência da realeza árabe e da alta perfumaria de luxo. Uma curadoria exclusiva de frascos cobiçados, repletos de mistério, fixação insuperável e opulência sensorial diretamente das mais renomadas maisons e boutiques sofisticadas de Dubai.
             </p>
 
             <div className="pt-2 flex flex-wrap gap-4">
@@ -69,14 +69,6 @@ export default function Hero({ products, onExploreClick, onSelectCategory, onPro
                 className="px-8 py-4 bg-[#D4AF37] text-black text-[11px] uppercase tracking-[0.2em] font-bold hover:bg-white hover:text-black transition-all rounded-sm font-sans shadow-lg shadow-[#D4AF37]/10 cursor-pointer"
               >
                 Comprar Coleção
-              </button>
-              
-              <button
-                id="hero-quick-category-roupas"
-                onClick={() => onSelectCategory('tenis')}
-                className="px-6 py-4 border border-white/10 hover:border-[#D4AF37] text-white hover:text-[#D4AF37] text-[11px] uppercase tracking-[0.2em] font-medium transition-all rounded-sm bg-transparent cursor-pointer"
-              >
-                Tênis Exclusivos
               </button>
             </div>
           </div>

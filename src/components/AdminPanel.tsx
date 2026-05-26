@@ -45,6 +45,7 @@ export default function AdminPanel({
   const [pPrice, setPPrice] = useState(0);
   const [pPromoPrice, setPPromoPrice] = useState(0);
   const [pCat, setPCat] = useState('roupas');
+  const [pSubcat, setPSubcat] = useState('');
   const [pImageUrl, setPImageUrl] = useState('');
   const [pImages, setPImages] = useState<string[]>(['']);
   const [pStock, setPStock] = useState(5);
@@ -57,6 +58,7 @@ export default function AdminPanel({
   // Edit / Create Category fields
   const [newCatId, setNewCatId] = useState('');
   const [newCatName, setNewCatName] = useState('');
+  const [newCatSubcategories, setNewCatSubcategories] = useState('');
 
   // Edit / Create Coupon Fields
   const [cCode, setCCode] = useState('');
@@ -172,6 +174,7 @@ export default function AdminPanel({
     setPSizes('40, 41, 42');
     setPColors('Preto, Branco, Dourado');
     setPBrand('');
+    setPSubcat('');
     setPFeatured(false);
     setPIsNew(true);
     setShowProductForm(true);
@@ -191,6 +194,7 @@ export default function AdminPanel({
     setPSizes(prod.sizes.join(', '));
     setPColors(prod.colors.join(', '));
     setPBrand(prod.brand);
+    setPSubcat(prod.subcategory || '');
     setPFeatured(prod.featured);
     setPIsNew(prod.isNew);
     setShowProductForm(true);
@@ -212,6 +216,7 @@ export default function AdminPanel({
       price: Number(pPrice),
       promoPrice: Number(pPromoPrice),
       category: pCat,
+      subcategory: pSubcat,
       images: finalImages,
       stock: Number(pStock),
       sizes: pSizes.split(',').map(s => s.trim()).filter(Boolean),
@@ -257,7 +262,8 @@ export default function AdminPanel({
       id: newCatId.toLowerCase().trim(),
       name: newCatName.trim(),
       active: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      subcategories: newCatSubcategories.split(',').map(s => s.trim()).filter(Boolean)
     };
 
     try {
@@ -265,6 +271,7 @@ export default function AdminPanel({
       await setDoc(doc(db, catsPath, nCat.id), nCat);
       setNewCatId('');
       setNewCatName('');
+      setNewCatSubcategories('');
       onRefreshCategories();
       alert('Categoria criada!');
     } catch (err) {
@@ -550,7 +557,7 @@ export default function AdminPanel({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] font-mono text-zinc-400 font-bold block mb-1">Marca / Estilista:</label>
                       <input
@@ -573,6 +580,26 @@ export default function AdminPanel({
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono text-zinc-400 font-bold block mb-1">Subcategoria:</label>
+                      <input
+                        type="text"
+                        list="subcat-options"
+                        value={pSubcat}
+                        onChange={(e) => setPSubcat(e.target.value)}
+                        placeholder="Selecione ou digite"
+                        className="bg-zinc-900 text-white rounded-lg p-2.5 border border-zinc-800 text-xs w-full focus:outline-none"
+                      />
+                      <datalist id="subcat-options">
+                        {categories.find(c => c.id === pCat)?.subcategories?.map(sub => (
+                          <option key={sub} value={sub} />
+                        ))}
+                        <option value="Perfumes Árabes" />
+                        <option value="Perfumes Importados" />
+                        <option value="Camisas de Times" />
+                        <option value="Camisas da NBA" />
+                      </datalist>
                     </div>
                   </div>
 
@@ -816,6 +843,16 @@ export default function AdminPanel({
                       className="bg-zinc-900 text-white rounded-lg p-2.5 text-xs w-full border border-zinc-800 focus:outline-none"
                     />
                   </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-zinc-500 block mb-1">Subcategorias (separadas por vírgula):</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Perfumes Árabes, Perfumes Importados"
+                      value={newCatSubcategories}
+                      onChange={(e) => setNewCatSubcategories(e.target.value)}
+                      className="bg-zinc-900 text-white rounded-lg p-2.5 text-xs w-full border border-zinc-800 focus:outline-none"
+                    />
+                  </div>
 
                   <button
                     type="submit"
@@ -829,25 +866,58 @@ export default function AdminPanel({
                 <div className="rounded-2xl border border-zinc-900 bg-zinc-950 p-5 space-y-4">
                   <div className="text-xs font-mono text-zinc-400 font-bold uppercase tracking-wider">Tópicos Ativos</div>
                   
-                  <div className="space-y-2.5">
+                  <div className="space-y-4">
                     {categories.map((cat) => (
-                      <div key={cat.id} className="flex justify-between items-center rounded-xl bg-zinc-900/50 p-3.5 border border-zinc-900">
-                        <div className="text-left">
-                          <p className="text-xs font-bold text-zinc-200 capitalize">{cat.name}</p>
-                          <span className="text-[9px] font-mono text-zinc-500">ID: {cat.id}</span>
+                      <div key={cat.id} className="flex flex-col gap-2.5 rounded-xl bg-zinc-900/50 p-3.5 border border-zinc-900">
+                        <div className="flex justify-between items-center">
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-zinc-200 capitalize">{cat.name}</p>
+                            <span className="text-[9px] font-mono text-zinc-500">ID: {cat.id}</span>
+                          </div>
+
+                          <div className="flex gap-2 items-center">
+                            <button
+                              onClick={() => handleToggleCategoryActive(cat)}
+                              className={`text-[9px] font-mono font-bold px-3 py-1.5 rounded transition ${
+                                cat.active
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              }`}
+                            >
+                              {cat.active ? 'HABILITADO' : 'DESATIVADO'}
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex gap-2 items-center">
-                          <button
-                            onClick={() => handleToggleCategoryActive(cat)}
-                            className={`text-[9px] font-mono font-bold px-3 py-1.5 rounded transition ${
-                              cat.active
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                            }`}
-                          >
-                            {cat.active ? 'HABILITADO' : 'DESATIVADO'}
-                          </button>
+                        <div className="pt-2 border-t border-zinc-900 mt-1 flex flex-col gap-1.5">
+                          <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block">Subcategorias (separadas por vírgula):</span>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              placeholder="Ex: Sub 1, Sub 2, Sub 3"
+                              defaultValue={cat.subcategories?.join(', ') || ''}
+                              id={`subcats-input-${cat.id}`}
+                              className="bg-zinc-950 text-white rounded-lg p-1.5 px-2 text-[11px] w-full border border-zinc-850 focus:outline-[#D4AF37] focus:outline focus:outline-1"
+                            />
+                            <button
+                              onClick={async () => {
+                                const val = (document.getElementById(`subcats-input-${cat.id}`) as HTMLInputElement)?.value || '';
+                                const subList = val.split(',').map(s => s.trim()).filter(Boolean);
+                                try {
+                                  await updateDoc(doc(db, 'categories', cat.id), {
+                                    subcategories: subList
+                                  });
+                                  onRefreshCategories();
+                                  alert('Subcategorias atualizadas!');
+                                } catch (err) {
+                                  handleFirestoreError(err, OperationType.UPDATE, 'categories');
+                                }
+                              }}
+                              className="px-2.5 py-1.5 bg-[#D4AF37] hover:bg-[#C5A059] text-black font-semibold text-[10px] rounded cursor-pointer"
+                            >
+                              Salvar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

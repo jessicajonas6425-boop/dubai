@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, Heart, User, Search, Menu, X, Trash2, Plus, Minus, LogOut, Settings, Shield, Smartphone } from 'lucide-react';
-import { CartItem, Product, UserProfile } from '../types';
+import { CartItem, Product, UserProfile, Category } from '../types';
 
 interface NavbarProps {
   cart: CartItem[];
@@ -23,6 +23,9 @@ interface NavbarProps {
   isAdminUser: boolean;
   onInstallClick?: () => void;
   showInstallButton?: boolean;
+  categories: Category[];
+  activeSubcategory?: string;
+  onSubcategorySelect?: (subId: string) => void;
 }
 
 export default function Navbar({
@@ -45,6 +48,9 @@ export default function Navbar({
   isAdminUser,
   onInstallClick,
   showInstallButton = false,
+  categories,
+  activeSubcategory = 'all',
+  onSubcategorySelect,
 }: NavbarProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -107,28 +113,75 @@ export default function Navbar({
           </div>
 
           {/* Desktop Categories Toolbar */}
-          <nav className="hidden md:flex items-center space-x-10">
-            {['all', 'roupas', 'tenis', 'perfumes'].map((cat) => {
-              const displayLabel = cat === 'all' ? 'Ver Tudo' : cat === 'roupas' ? 'Vestuário' : cat === 'tenis' ? 'Tênis' : 'Perfumes';
+          <nav className="hidden md:flex items-center space-x-8">
+            {[
+              { id: 'all', name: 'Ver Tudo', subcategories: [] as string[] },
+              ...categories.filter((c) => c.active)
+            ].map((cat) => {
+              const hasSubs = cat.subcategories && cat.subcategories.length > 0;
               return (
-                <button
-                  key={cat}
-                  onClick={() => onCategorySelect(cat)}
-                  className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all duration-300 relative py-1 hover:text-[#D4AF37] ${
-                    activeCategory === cat
-                      ? 'text-[#D4AF37]'
-                      : 'text-white/60'
-                  }`}
-                >
-                  {displayLabel}
-                  {activeCategory === cat && (
-                    <motion.div
-                      layoutId="activeCategoryIndicator"
-                      className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#D4AF37]"
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
+                <div key={cat.id} className="relative group py-1.5">
+                  <button
+                    onClick={() => {
+                      onCategorySelect(cat.id);
+                      if (onSubcategorySelect) onSubcategorySelect('all');
+                    }}
+                    className={`text-[11px] font-bold tracking-[0.2em] uppercase transition-all duration-300 relative py-1.5 hover:text-[#D4AF37] cursor-pointer flex items-center gap-1 ${
+                      activeCategory === cat.id
+                        ? 'text-[#D4AF37]'
+                        : 'text-white/60'
+                    }`}
+                  >
+                    <span>{cat.name}</span>
+                    {hasSubs && (
+                      <span className="text-[7px] opacity-75 group-hover:rotate-180 transition-transform duration-200">▼</span>
+                    )}
+                    {activeCategory === cat.id && (
+                      <motion.div
+                        layoutId="activeCategoryIndicator"
+                        className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-[#D4AF37]"
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </button>
+
+                  {/* Dropdown Menu on Hover */}
+                  {hasSubs && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-[#0D0D0D] border border-white/5 rounded-md shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-left">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            onCategorySelect(cat.id);
+                            if (onSubcategorySelect) onSubcategorySelect('all');
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-[10px] uppercase tracking-wider hover:bg-[#151515] transition font-semibold ${
+                            activeCategory === cat.id && activeSubcategory === 'all'
+                              ? 'text-[#D4AF37] bg-[#151515]'
+                              : 'text-white/70 hover:text-[#D4AF37]'
+                          }`}
+                        >
+                          Ver Tudo
+                        </button>
+                        {cat.subcategories?.map((sub) => (
+                          <button
+                            key={sub}
+                            onClick={() => {
+                              onCategorySelect(cat.id);
+                              if (onSubcategorySelect) onSubcategorySelect(sub);
+                            }}
+                            className={`w-full text-left px-4 py-2.5 text-[10px] uppercase tracking-wider hover:bg-[#151515] transition font-semibold ${
+                              activeCategory === cat.id && activeSubcategory === sub
+                                ? 'text-[#D4AF37] bg-[#151515]'
+                                : 'text-white/60 hover:text-[#D4AF37]'
+                            }`}
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </nav>
@@ -457,23 +510,65 @@ export default function Navbar({
               <div className="flex-1 space-y-6">
                 <div className="text-[9px] font-sans text-white/40 tracking-[0.2em] uppercase font-bold">Categorias</div>
                 <div className="flex flex-col space-y-4">
-                  {['all', 'roupas', 'tenis', 'perfumes'].map((cat) => {
-                    const displayLabel = cat === 'all' ? 'Ver Tudo' : cat === 'roupas' ? 'Vestuário' : cat === 'tenis' ? 'Tênis' : 'Perfumes';
+                  {[
+                    { id: 'all', name: 'Ver Tudo', subcategories: [] as string[] },
+                    ...categories.filter((c) => c.active)
+                  ].map((cat) => {
+                    const hasSubs = cat.subcategories && cat.subcategories.length > 0;
                     return (
-                      <button
-                        key={cat}
-                        onClick={() => {
-                          onCategorySelect(cat);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className={`text-left text-xs font-bold tracking-[0.15em] uppercase py-1.5 border-l-2 pl-3 ${
-                          activeCategory === cat
-                            ? 'border-[#D4AF37] text-[#D4AF37]'
-                            : 'border-transparent text-white/50 hover:text-white'
-                        }`}
-                      >
-                        {displayLabel}
-                      </button>
+                      <div key={cat.id} className="flex flex-col space-y-1">
+                        <button
+                          onClick={() => {
+                            onCategorySelect(cat.id);
+                            if (onSubcategorySelect) onSubcategorySelect('all');
+                            if (!hasSubs) setIsMobileMenuOpen(false);
+                          }}
+                          className={`text-left text-xs font-bold tracking-[0.15em] uppercase py-1.5 border-l-2 pl-3 flex justify-between items-center ${
+                            activeCategory === cat.id
+                              ? 'border-[#D4AF37] text-[#D4AF37]'
+                              : 'border-transparent text-white/50 hover:text-white'
+                          }`}
+                        >
+                          <span>{cat.name}</span>
+                        </button>
+                        
+                        {/* Nested Subcategories on mobile */}
+                        {hasSubs && (
+                          <div className="pl-6 flex flex-col space-y-2.5 mt-1 border-l border-white/5 pb-2 ml-3">
+                            <button
+                              onClick={() => {
+                                onCategorySelect(cat.id);
+                                if (onSubcategorySelect) onSubcategorySelect('all');
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className={`text-left text-[11px] font-medium tracking-[0.1em] uppercase ${
+                                activeCategory === cat.id && activeSubcategory === 'all'
+                                  ? 'text-[#D4AF37]'
+                                  : 'text-white/40 hover:text-white/80'
+                              }`}
+                            >
+                              Ver todos de {cat.name}
+                            </button>
+                            {cat.subcategories?.map((sub) => (
+                              <button
+                                key={sub}
+                                onClick={() => {
+                                  onCategorySelect(cat.id);
+                                  if (onSubcategorySelect) onSubcategorySelect(sub);
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className={`text-left text-[11px] font-medium tracking-[0.1em] uppercase ${
+                                  activeCategory === cat.id && activeSubcategory === sub
+                                    ? 'text-[#D4AF37] font-semibold'
+                                    : 'text-white/40 hover:text-white/80'
+                                }`}
+                              >
+                                {sub}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

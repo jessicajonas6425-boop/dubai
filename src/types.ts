@@ -5,6 +5,7 @@ export interface Product {
   price: number;
   promoPrice: number;
   category: string; // "Roupas" | "Tênis" | "Perfumes"
+  subcategory?: string; // "Perfumes Árabes" | "Perfumes Importados" | "Camisas de Times" | "Camisas da NBA"
   images: string[];
   stock: number;
   sizes: string[];
@@ -20,6 +21,7 @@ export interface Category {
   name: string;
   active: boolean;
   createdAt: string;
+  subcategories?: string[]; // List of subcategories under this category
 }
 
 export interface OrderItem {

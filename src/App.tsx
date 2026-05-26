@@ -72,6 +72,7 @@ export default function App() {
 
   // Filter Toolbar States
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeSubcategory, setActiveSubcategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [selectedSize, setSelectedSize] = useState<string>('all');
@@ -331,6 +332,60 @@ export default function App() {
       return false;
     }
 
+    // Subcategory filter with dynamic field and keyword checks back-up
+    if (activeSubcategory !== 'all') {
+      const prodSub = (prod.subcategory || '').toLowerCase().trim();
+      const activeSub = activeSubcategory.toLowerCase().trim();
+      
+      if (prodSub !== activeSub) {
+        // Fallbacks for default values if not exact match
+        if (activeCategory === 'perfumes') {
+          const isArabText = prod.name.toLowerCase().includes('árabe') || 
+                             prod.name.toLowerCase().includes('arabe') || 
+                             prod.description.toLowerCase().includes('árabe') || 
+                             prod.description.toLowerCase().includes('arabe') || 
+                             prod.description.toLowerCase().includes('alta perfumaria árabe');
+          
+          if (activeSub === 'perfumes árabes' || activeSub === 'perfumes arabes') {
+            const isArab = prodSub === 'perfumes árabes' || prodSub === 'perfumes arabes' || isArabText;
+            if (!isArab) return false;
+          } else if (activeSub === 'perfumes importados') {
+            const isImported = prodSub === 'perfumes importados' || (!isArabText && prodSub !== 'perfumes árabes' && prodSub !== 'perfumes arabes');
+            if (!isImported) return false;
+          } else {
+            return false;
+          }
+        } else if (activeCategory === 'roupas') {
+          const isTimesText = prod.name.toLowerCase().includes('time') || 
+                              prod.name.toLowerCase().includes('clube') || 
+                              prod.name.toLowerCase().includes('camisa de time') || 
+                              prod.name.toLowerCase().includes('futebol') || 
+                              prod.description.toLowerCase().includes('time') || 
+                              prod.description.toLowerCase().includes('clube');
+                              
+          const isNbaText = prod.name.toLowerCase().includes('nba') || 
+                            prod.name.toLowerCase().includes('basquete') || 
+                            prod.name.toLowerCase().includes('lakers') || 
+                            prod.name.toLowerCase().includes('bulls') || 
+                            prod.name.toLowerCase().includes('warriors') || 
+                            prod.description.toLowerCase().includes('nba') || 
+                            prod.description.toLowerCase().includes('basquete');
+                            
+          if (activeSub === 'camisas de times') {
+            const isTimes = prodSub === 'camisas de times' || isTimesText;
+            if (!isTimes) return false;
+          } else if (activeSub === 'camisas da nba') {
+            const isNba = prodSub === 'camisas da nba' || isNbaText;
+            if (!isNba) return false;
+          } else {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+
     // Brand filter
     if (selectedBrand !== 'all' && prod.brand !== selectedBrand) {
       return false;
@@ -421,10 +476,16 @@ export default function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         activeCategory={activeCategory}
-        onCategorySelect={setActiveCategory}
+        onCategorySelect={(cat) => {
+          setActiveCategory(cat);
+          setActiveSubcategory('all');
+        }}
         isAdminUser={isAdminUser}
         onInstallClick={handleInstallPWA}
         showInstallButton={true}
+        categories={categories}
+        activeSubcategory={activeSubcategory}
+        onSubcategorySelect={setActiveSubcategory}
       />
 
       {/* Main Hero Showcase */}
@@ -435,7 +496,10 @@ export default function App() {
             const vitrine = document.getElementById('vitrine-anchor');
             if (vitrine) vitrine.scrollIntoView({ behavior: 'smooth' });
           }}
-          onSelectCategory={setActiveCategory}
+          onSelectCategory={(cat) => {
+            setActiveCategory(cat);
+            setActiveSubcategory('all');
+          }}
           onProductClick={setSelectedProduct}
         />
       )}
@@ -452,12 +516,52 @@ export default function App() {
             <h2 className="text-2xl sm:text-4xl font-light text-white font-serif mt-2 tracking-wide text-left">
               {activeCategory === 'all' 
                 ? 'Coleção Completa' 
-                : activeCategory === 'roupas' 
-                  ? 'Vestuário Premium' 
-                  : activeCategory === 'tenis' 
-                    ? 'Tênis Exclusivos' 
-                    : 'Fragrâncias de Luxo'}
+                : categories.find(c => c.id === activeCategory)?.name || 'Vitrine Premium'}
             </h2>
+
+            {/* Dynamic Subcategories Row */}
+            {activeCategory !== 'all' && (
+              <div className="flex flex-wrap gap-2.5 mt-4">
+                {(() => {
+                  const currentCategoryDoc = categories.find((c) => c.id === activeCategory);
+                  const dbSubcategories = currentCategoryDoc?.subcategories || [];
+                  
+                  // Let's build the list of subcategories to display
+                  let subs: { id: string; name: string }[] = [{ id: 'all', name: 'Ver Tudo' }];
+                  
+                  if (dbSubcategories.length > 0) {
+                    dbSubcategories.forEach(sub => {
+                      subs.push({ id: sub, name: sub });
+                    });
+                  } else {
+                    // Fallbacks for default hardcoded ones if not specified in Firestore
+                    if (activeCategory === 'perfumes') {
+                      subs.push({ id: 'Perfumes Árabes', name: 'Perfumes Árabes' });
+                      subs.push({ id: 'Perfumes Importados', name: 'Perfumes Importados' });
+                    } else if (activeCategory === 'roupas') {
+                      subs.push({ id: 'Camisas de Times', name: 'Camisas de Times' });
+                      subs.push({ id: 'Camisas da NBA', name: 'Camisas da NBA' });
+                    }
+                  }
+                  
+                  if (subs.length <= 1) return null; // No subcategories to display
+                  
+                  return subs.map((tc) => (
+                    <button
+                      key={tc.id}
+                      onClick={() => setActiveSubcategory(tc.id)}
+                      className={`px-4.5 py-2.5 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
+                        activeSubcategory === tc.id
+                          ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-lg shadow-[#D4AF37]/15'
+                          : 'bg-[#0D0D0D] border-white/10 text-white/70 hover:border-white/30 hover:text-white'
+                      }`}
+                    >
+                      {tc.name}
+                    </button>
+                  ));
+                })()}
+              </div>
+            )}
           </div>
           
           {/* Quick Filters Action and Sort Menu */}
@@ -502,14 +606,14 @@ export default function App() {
                 
                 {/* 1. Brands range selector */}
                 <div className="space-y-2 text-left">
-                  <span className="text-[10px] font-mono text-zinc-500 uppercase font-black tracking-widest">Grife / Fabricante</span>
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase font-black tracking-widest">Marca / Fabricante</span>
                   <div className="relative">
                     <select
                       value={selectedBrand}
                       onChange={(e) => setSelectedBrand(e.target.value)}
                       className="bg-zinc-900 text-zinc-300 text-xs rounded-xl p-3 w-full border border-zinc-850 focus:outline-none"
                     >
-                      <option value="all">Todas as Marcas Grifes</option>
+                      <option value="all">Todas as marcas</option>
                       {uniqueBrands.map((b) => (
                         <option key={b} value={b}>{b}</option>
                       ))}
