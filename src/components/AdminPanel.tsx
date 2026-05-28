@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { X, Shield, BarChart3, Package, FolderOpen, Percent, Settings, Users, ArrowUpRight, Plus, Edit, Trash2, Check, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { Product, Category, Order, UserProfile, Coupon, SiteConfig } from '../types';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { db, handleFirestoreError, OperationType, seedLuxuryBoutique } from '../firebase';
 import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
 
 interface AdminPanelProps {
@@ -81,6 +81,7 @@ export default function AdminPanel({
   const [cfgMercadoPagoPublicKey, setCfgMercadoPagoPublicKey] = useState('');
   const [cfgFreeShippingMin, setCfgFreeShippingMin] = useState<number>(0);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [restoringPerfumes, setRestoringPerfumes] = useState(false);
 
   useEffect(() => {
     fetchOrdersList();
@@ -340,6 +341,21 @@ export default function AdminPanel({
       fetchCouponsList();
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, 'coupons');
+    }
+  };
+
+  const handleRestorePerfumes = async () => {
+    if (!window.confirm('Deseja realmente restaurar os Perfumes e Categorias originais para o banco de dados? Isso garantirá que todos os perfumes padrão estejam cadastrados e ativos.')) {
+      return;
+    }
+    setRestoringPerfumes(true);
+    try {
+      await seedLuxuryBoutique(true);
+      alert('Perfumes e categorias originais da loja restaurados com sucesso!');
+    } catch (err: any) {
+      alert('Falha ao restaurar perfumes: ' + err.message);
+    } finally {
+      setRestoringPerfumes(false);
     }
   };
 
@@ -1281,7 +1297,16 @@ export default function AdminPanel({
 
               </div>
 
-              <div className="pt-4 border-t border-zinc-900 flex justify-end">
+              <div className="pt-4 border-t border-zinc-900 flex justify-end items-center gap-3">
+                <button
+                  type="button"
+                  disabled={restoringPerfumes}
+                  onClick={handleRestorePerfumes}
+                  className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-805 text-white/90 font-semibold font-mono text-[10px] uppercase px-5 py-3.5 rounded-xl transition flex items-center gap-2"
+                >
+                  <RefreshCw size={13} className={restoringPerfumes ? 'animate-spin' : ''} />
+                  {restoringPerfumes ? 'Restaurando...' : 'Restaurar Perfumes Padrão'}
+                </button>
                 <button
                   type="submit"
                   disabled={savingConfig}

@@ -246,7 +246,7 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
 };
 
 // Seeding engine to make the store functional from the very first boot!
-export async function seedLuxuryBoutique() {
+export async function seedLuxuryBoutique(force: boolean = false) {
   try {
     const categoriesSnapshot = await getDocs(collection(db, 'categories'));
     
@@ -277,7 +277,42 @@ export async function seedLuxuryBoutique() {
       await batch.commit();
       console.log('Seeding completed successfully! Dubai Store is fully loaded.');
     } else {
-      console.log('Dubai Store already populated. Skipping database seed phase.');
+      console.log('Dubai Store already populated. Checking if seed perfumes and category are missing...');
+      
+      const perfumesCategoryRef = doc(db, 'categories', 'perfumes');
+      const perfumesCategoryExists = categoriesSnapshot.docs.some(d => d.id === 'perfumes');
+      const perfumesCategoryDoc = categoriesSnapshot.docs.find(d => d.id === 'perfumes');
+      
+      const batch = writeBatch(db);
+      let needsCommit = false;
+
+      if (!perfumesCategoryExists || force) {
+        batch.set(perfumesCategoryRef, { id: 'perfumes', name: 'Perfumes', active: true, createdAt: new Date().toISOString() });
+        needsCommit = true;
+      } else if (perfumesCategoryDoc && !perfumesCategoryDoc.data().active) {
+        batch.update(perfumesCategoryRef, { active: true });
+        needsCommit = true;
+      }
+
+      // Check which seed perfumes are missing or force-update them
+      const productsSnapshot = await getDocs(collection(db, 'products'));
+      const existingProductIds = new Set(productsSnapshot.docs.map(doc => doc.id));
+
+      const defaultPerfumes = SEED_PRODUCTS.filter(p => p.category === 'perfumes');
+      for (const perf of defaultPerfumes) {
+        if (!existingProductIds.has(perf.id) || force) {
+          console.log(`Restoring default perfume: ${perf.name}`);
+          batch.set(doc(db, 'products', perf.id), perf);
+          needsCommit = true;
+        }
+      }
+
+      if (needsCommit) {
+        await batch.commit();
+        console.log('Default perfumes and category successfully restored!');
+      } else {
+        console.log('All default perfumes are already present and active.');
+      }
     }
   } catch (error) {
     console.error('Core Seeding failure: ', error);

@@ -46,6 +46,7 @@ export default function CheckoutModal({
   // Transaction Receipt details
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [isProcessingOrder, setIsProcessingOrder] = useState<boolean>(false);
+  const [whatsappUrl, setWhatsappUrl] = useState<string>('');
 
   // Dynamic Shipping & Zip Code Lookup
   const [shippingPrice, setShippingPrice] = useState<number | null>(null);
@@ -297,11 +298,16 @@ export default function CheckoutModal({
       const waUrl = `https://wa.me/${cleanPhone}/?text=${encodeURIComponent(msgs)}`;
 
       setCreatedOrder(newOrder);
+      setWhatsappUrl(waUrl);
       setStep(2);
       onClearCart();
 
-      // Open WhatsApp Dispatch link using window.location.href for better mobile compatibility
-      window.location.href = waUrl;
+      // Open WhatsApp Dispatch link in a new tab to avoid iframe and X-Frame-Options blocks
+      try {
+        window.open(waUrl, '_blank');
+      } catch (err) {
+        console.warn('Popup blocker prevented automatic tab opening. Displaying direct backup button in step 2.', err);
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'orders');
     } finally {
@@ -548,10 +554,20 @@ export default function CheckoutModal({
                   PEDIDO-REF: <span className="text-[#D4AF37] font-black">{createdOrder.id}</span>
                 </div>
 
-                <div className="w-full pt-4">
+                <div className="w-full pt-4 flex flex-col items-center gap-4">
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-72 max-w-full rounded-sm bg-[#25D366] hover:bg-[#20ba5a] text-white py-4 text-xs font-sans font-bold uppercase tracking-[0.15em] transition-all cursor-pointer flex items-center justify-center gap-2.5 shadow-lg shadow-[#25D366]/20 font-semibold"
+                  >
+                    <Smartphone size={15} />
+                    Enviar WhatsApp Manualmente
+                  </a>
+                  
                   <button
                     onClick={onClose}
-                    className="w-64 max-w-full rounded-sm bg-[#D4AF37] hover:bg-white text-black py-4 text-xs font-sans font-bold uppercase tracking-[0.2em] transition-all cursor-pointer shadow-lg shadow-[#D4AF37]/10"
+                    className="w-72 max-w-full rounded-sm bg-[#D4AF37]/10 hover:bg-[#D4AF37]/25 text-[#D4AF37] border border-[#D4AF37]/35 py-3.5 text-[11px] font-sans font-bold uppercase tracking-[0.15em] transition-all cursor-pointer"
                   >
                     Voltar para a Vitrine
                   </button>
