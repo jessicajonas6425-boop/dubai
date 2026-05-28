@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, collection, getDocs, setDoc, writeBatch, serverTimestamp, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, collection, getDocs, setDoc, writeBatch, serverTimestamp, getDocFromServer, increment, updateDoc, getDoc } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import { Product, Category, SiteConfig, Coupon } from './types';
 
@@ -318,3 +318,48 @@ export async function seedLuxuryBoutique(force: boolean = false) {
     console.error('Core Seeding failure: ', error);
   }
 }
+
+// Access tracking mechanism for metrics dashboard
+export async function trackAccess() {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const statsRef = doc(db, 'siteStats', 'visitors');
+
+    // Attempt to read the document first
+    const statsSnap = await getDoc(statsRef);
+    if (!statsSnap.exists()) {
+      // Create with initial values
+      sessionStorage.setItem('dubai_visited_session', 'true');
+      await setDoc(statsRef, {
+        totalViews: 1,
+        totalSessions: 1,
+        dailyViews: {
+          [today]: 1
+        },
+        dailySessions: {
+          [today]: 1
+        }
+      });
+      return;
+    }
+
+    // Determine if it is a new session
+    const isNewSession = !sessionStorage.getItem('dubai_visited_session');
+    
+    // Setup update payload
+    const updates: any = {};
+    updates['totalViews'] = increment(1);
+    updates[`dailyViews.${today}`] = increment(1);
+
+    if (isNewSession) {
+      sessionStorage.setItem('dubai_visited_session', 'true');
+      updates['totalSessions'] = increment(1);
+      updates[`dailySessions.${today}`] = increment(1);
+    }
+
+    await updateDoc(statsRef, updates);
+  } catch (err) {
+    console.warn('Silent warning - Failed to log access metric:', err);
+  }
+}
+

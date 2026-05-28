@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db, auth, seedLuxuryBoutique } from './firebase';
+import { db, auth, seedLuxuryBoutique, trackAccess } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { Product, Category, CartItem, UserProfile, SiteConfig } from './types';
@@ -158,6 +158,7 @@ export default function App() {
     // 1. Kickstart Firestore Seeder Engine (Sealing database seeding)
     const initDatabase = async () => {
       await seedLuxuryBoutique();
+      await trackAccess();
     };
     initDatabase();
 

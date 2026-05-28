@@ -115,6 +115,18 @@
         "createdAt": { "type": "string", "description": "Moment reviews were written" }
       },
       "required": ["id", "productId", "userId", "userName", "rating", "comment"]
+    },
+    "SiteStats": {
+      "title": "SiteStats",
+      "description": "Visitor and page session counters for dashboard analytics",
+      "type": "object",
+      "properties": {
+        "totalViews": { "type": "number", "description": "Total number of page views across all clients" },
+        "totalSessions": { "type": "number", "description": "Total number of unique user sessions across all clients" },
+        "dailyViews": { "type": "object", "description": "A map of date strings (YYYY-MM-DD) to views counts" },
+        "dailySessions": { "type": "object", "description": "A map of date strings (YYYY-MM-DD) to sessions counts" }
+      },
+      "required": ["totalViews", "totalSessions"]
     }
   },
   "firestore": {
@@ -145,6 +157,10 @@
     "/reviews/{reviewId}": {
       "schema": "Review",
       "description": "Boutique product feedback written by shoppers"
+    },
+    "/siteStats/{statsId}": {
+      "schema": "SiteStats",
+      "description": "Aggregated numbers and page traffic statistics"
     }
   }
 }

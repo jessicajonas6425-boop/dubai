@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { X, Shield, BarChart3, Package, FolderOpen, Percent, Settings, Users, ArrowUpRight, Plus, Edit, Trash2, Check, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { Product, Category, Order, UserProfile, Coupon, SiteConfig } from '../types';
 import { db, handleFirestoreError, OperationType, seedLuxuryBoutique } from '../firebase';
-import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -82,11 +82,33 @@ export default function AdminPanel({
   const [cfgFreeShippingMin, setCfgFreeShippingMin] = useState<number>(0);
   const [savingConfig, setSavingConfig] = useState(false);
   const [restoringPerfumes, setRestoringPerfumes] = useState(false);
+  const [visitorStats, setVisitorStats] = useState<{
+    totalViews: number;
+    totalSessions: number;
+    dailyViews?: Record<string, number>;
+    dailySessions?: Record<string, number>;
+  } | null>(null);
 
   useEffect(() => {
     fetchOrdersList();
     fetchCouponsList();
     fetchUsersList();
+
+    const unsubStats = onSnapshot(
+      doc(db, 'siteStats', 'visitors'),
+      (snap) => {
+        if (snap.exists()) {
+          setVisitorStats(snap.data() as any);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'siteStats/visitors');
+      }
+    );
+
+    return () => {
+      unsubStats();
+    };
   }, []);
 
   useEffect(() => {
@@ -466,7 +488,7 @@ export default function AdminPanel({
           {/* TAB 1: Dashboard metrics */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6 text-left">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 
                 {/* Metric Card 1 */}
                 <div className="rounded-2xl border border-zinc-900 bg-zinc-950 p-5 space-y-2">
@@ -498,7 +520,95 @@ export default function AdminPanel({
                   <p className="text-[10px] text-zinc-600 font-mono">Fidelizados registrados</p>
                 </div>
 
+                {/* Metric Card 5: Live Site Access Counter */}
+                <div className="rounded-2xl border border-zinc-900 bg-zinc-950 p-5 space-y-2 relative overflow-hidden">
+                  <div className="absolute top-4 right-4 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse block" />
+                    <span className="text-[8px] text-emerald-500 font-mono font-black uppercase tracking-wider">ONLINE</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-500 uppercase">Acessos do Site</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="text-2xl font-black text-[#D4AF37] font-sans">
+                      {visitorStats?.totalViews ?? 0}
+                    </p>
+                    <span className="text-[10px] text-zinc-500 font-mono lower">views</span>
+                  </div>
+                  <div className="text-[9px] text-zinc-500 font-mono flex flex-col gap-0.5 pt-1.5 border-t border-zinc-900/60 mt-2">
+                    <div className="flex justify-between">
+                      <span>Sessões Únicas:</span>
+                      <span className="text-white font-bold">{visitorStats?.totalSessions ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Hoje:</span>
+                      <span className="text-emerald-400 font-bold">+{visitorStats?.dailyViews?.[new Date().toISOString().split('T')[0]] ?? 0} views</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
+
+              {/* Visitor analytics breakdown of daily views */}
+              {visitorStats && (
+                <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-5 text-xs">
+                  <div className="flex items-center justify-between mb-4 border-b border-zinc-900/60 pb-3">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-mono font-black text-zinc-400 uppercase tracking-widest block">Análise Gráfica Trim/Diária</span>
+                      <p className="text-[10px] text-zinc-500 font-mono">Atividade diária de cliques de clientes na loja</p>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold bg-emerald-400/5 text-emerald-400 border border-emerald-400/10 px-2 py-1 rounded">Sessões vs Visualizações</span>
+                  </div>
+
+                  {(() => {
+                    // Generate list of last 10 days
+                    const days = Array.from({ length: 10 }, (_, i) => {
+                      const d = new Date();
+                      d.setDate(d.getDate() - i);
+                      return d.toISOString().split('T')[0];
+                    });
+
+                    // Check if there are any views in these days
+                    const hasData = days.some(day => (visitorStats.dailyViews?.[day] || 0) > 0);
+
+                    if (!hasData) {
+                      return <div className="text-center text-zinc-600 py-4 font-mono text-[10px]">Nenhum dado registrado para o período recente. Aguardando acessos...</div>;
+                    }
+
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {days.map(day => {
+                          const views = visitorStats.dailyViews?.[day] || 0;
+                          const sessions = visitorStats.dailySessions?.[day] || 0;
+                          if (views === 0 && sessions === 0) return null;
+
+                          // Human-readable date formatting (e.g., "28 Mai")
+                          const [y, m, d] = day.split('-');
+                          const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                          const formattedDate = `${d} ${months[parseInt(m) - 1]}`;
+
+                          return (
+                            <div key={day} className="bg-zinc-950 border border-zinc-900 p-3 rounded-xl flex flex-col justify-between space-y-3 shadow-md">
+                              <div className="flex justify-between items-center border-b border-zinc-900/50 pb-1.5">
+                                <span className="text-[10px] font-mono text-zinc-400 font-bold">{formattedDate}</span>
+                                <span className="h-1 w-1 bg-zinc-600 rounded-full" />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="text-zinc-500">Visualizações</span>
+                                  <span className="text-white font-heavy">{views}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="text-zinc-500">Sessões</span>
+                                  <span className="text-emerald-400 font-heavy">{sessions}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Live transactions summary log */}
               <div className="rounded-2xl border border-zinc-900 bg-zinc-950/40 p-5 space-y-3 mt-8">
